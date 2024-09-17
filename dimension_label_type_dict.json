@@ -1,0 +1,82 @@
+{
+    "3": {
+        "Confounder": 361,
+        "Collider": 200,
+        "Mediator": 216,
+        "Cause of X": 64,
+        "Cause of Y": 133,
+        "Consequence of X": 145,
+        "Consequence of Y": 72,
+        "Independent": 0
+    },
+    "4": {
+        "Confounder": 717,
+        "Collider": 457,
+        "Mediator": 419,
+        "Cause of X": 197,
+        "Cause of Y": 385,
+        "Consequence of X": 352,
+        "Consequence of Y": 196,
+        "Independent": 147
+    },
+    "5": {
+        "Confounder": 843,
+        "Collider": 545,
+        "Mediator": 587,
+        "Cause of X": 387,
+        "Cause of Y": 652,
+        "Consequence of X": 649,
+        "Consequence of Y": 340,
+        "Independent": 569
+    },
+    "6": {
+        "Confounder": 868,
+        "Collider": 524,
+        "Mediator": 635,
+        "Cause of X": 578,
+        "Cause of Y": 1014,
+        "Consequence of X": 1034,
+        "Consequence of Y": 465,
+        "Independent": 1190
+    },
+    "7": {
+        "Confounder": 953,
+        "Collider": 563,
+        "Mediator": 679,
+        "Cause of X": 891,
+        "Cause of Y": 1442,
+        "Consequence of X": 1312,
+        "Consequence of Y": 687,
+        "Independent": 2253
+    },
+    "8": {
+        "Confounder": 1042,
+        "Collider": 632,
+        "Mediator": 782,
+        "Cause of X": 1253,
+        "Cause of Y": 2350,
+        "Consequence of X": 1960,
+        "Consequence of Y": 889,
+        "Independent": 3968
+    },
+    "9": {
+        "Confounder": 1753,
+        "Collider": 1000,
+        "Mediator": 1209,
+        "Cause of X": 3024,
+        "Cause of Y": 6190,
+        "Consequence of X": 4559,
+        "Consequence of Y": 1868,
+        "Independent": 12982
+    },
+    "10": {
+        "Confounder": 2506,
+        "Collider": 1523,
+        "Mediator": 1569,
+        "Cause of X": 5920,
+        "Cause of Y": 14408,
+        "Consequence of X": 9779,
+        "Consequence of Y": 4016,
+        "Independent": 34007
+    }
+}
