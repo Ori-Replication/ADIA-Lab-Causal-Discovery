@@ -159,4 +159,20 @@ https://hub.crunchdao.com/competitions/causality-discovery/submit/via/notebook?p
 
 **Note**
 
+- **独立性度量**：距离相关系数为0当且仅当两个变量是独立的，这克服了皮尔逊相关系数的弱点。
+- **非线性关系检测**：能够检测任意类型的依赖关系，包括非线性和非单调关系。
+
 > **距离相关系数**
+>
+> 对于变量 $X$ 和 $Y$，距离相关系数的DC样本估计值为：
+> $$
+> dcorr(x,y) = \frac{dcov(x,y)}{\sqrt{dcov(x,x)dcov(y,y)}}
+> $$
+> 其中：$dcov^2(x,y) = Ŝ_1 + Ŝ_2 - 2Ŝ_3$。
+
+### 0918
+
+#### linear_regression_feature_v2
+
+#### conditional_mutual_information
+
