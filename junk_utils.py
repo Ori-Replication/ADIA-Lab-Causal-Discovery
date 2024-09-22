@@ -602,3 +602,70 @@ def multi_mutual_information(dataset):
     df = df[["dataset"] + [colname for colname in df.columns if colname != "dataset"]]
     
     return df
+
+
+
+def hilbert_schmidt_independence_rff(dataset, n_components=100, random_state=None):
+    """
+    Compute the Hilbert-Schmidt Independence Criterion (HSIC) between variables
+    using Random Fourier Features for efficiency.
+    
+    Parameters:
+    - dataset: pandas DataFrame containing the data.
+    - n_components: int, number of random Fourier features.
+    - random_state: int or None, for reproducibility.
+    
+    Returns:
+    - df: pandas DataFrame with HSIC features.
+    """
+    variables = dataset.columns.drop(["X", "Y"])
+    rng = check_random_state(random_state)
+    
+    # Prepare the random weights and biases for RFF
+    sigma = np.std(dataset.values)
+    if sigma == 0:
+        sigma = 1.0
+    gamma = 1.0 / (2 * sigma ** 2)
+    
+    def compute_rff(X):
+        n_samples = X.shape[0]
+        X = X.reshape(n_samples, -1)
+        W = rng.normal(scale=np.sqrt(2 * gamma), size=(X.shape[1], n_components))
+        b = rng.uniform(0, 2 * np.pi, size=n_components)
+        Z = np.sqrt(2.0 / n_components) * np.cos(X @ W + b)
+        return Z
+
+    # Compute RFF for X and Y once
+    Z_X = compute_rff(dataset["X"].values)
+    Z_Y = compute_rff(dataset["Y"].values)
+    
+    # Center the RFF features
+    Z_X -= Z_X.mean(axis=0)
+    Z_Y -= Z_Y.mean(axis=0)
+    
+    df = []
+    for variable in variables:
+        Z_v = compute_rff(dataset[variable].values)
+        Z_v -= Z_v.mean(axis=0)
+        
+        # Compute HSIC approximations
+        hsic_vX = np.sum(Z_v * Z_X) / (dataset.shape[0] - 1)
+        hsic_vY = np.sum(Z_v * Z_Y) / (dataset.shape[0] - 1)
+        
+        df.append({
+            "variable": variable,
+            "hsic(v,X)": hsic_vX,
+            "hsic(v,Y)": hsic_vY,
+        })
+    
+    df = pd.DataFrame(df)
+    df["dataset"] = dataset.name
+    
+    # Compute HSIC between X and Y
+    hsic_XY = np.sum(Z_X * Z_Y) / (dataset.shape[0] - 1)
+    df["hsic(X,Y)"] = hsic_XY
+    
+    # Reorder columns
+    df = df[["dataset"] + [colname for colname in df.columns if colname != "dataset"]]
+    
+    return df
