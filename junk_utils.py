@@ -285,3 +285,320 @@ def double_machine_learning(dataset):
     df = df[["dataset"] + [colname for colname in df.columns if colname != "dataset"]]
 
     return df
+
+
+def ttest(dataset, pvalue_threshold=0.05):
+    """
+    Given a dataset, this function computes the t-test between the
+    values each variable v and X, Y. The t value and the result of the
+    t-test with a given pvalue_threshold, are used to create features
+    to describe/embed v, as well as the t-test result between the
+    values of X and Y.
+    """
+
+    variables = dataset.columns.drop(["X", "Y"])
+
+    df = []
+    for variable in variables:
+        ttest_vX = ttest_rel(dataset[variable], dataset["X"])
+        ttest_vY = ttest_rel(dataset[variable], dataset["Y"])
+
+        df.append({
+            "variable": variable,
+            "ttest(v,X)": ttest_vX.statistic,
+            f"pvalue(ttest(v,X))<={pvalue_threshold}": (ttest_vX.pvalue <= pvalue_threshold).astype(float),
+            "ttest(v,Y)": ttest_vY.statistic,
+            f"pvalue(ttest(v,Y))<={pvalue_threshold}": (ttest_vY.pvalue <= pvalue_threshold).astype(float),
+        })
+
+    df = pd.DataFrame(df)
+    df["dataset"] = dataset.name
+
+    ttest_XY = ttest_rel(dataset["X"], dataset["Y"])
+    df["ttest(X,Y)"] = ttest_XY.statistic
+    df[f"pvalue(ttest(X,Y))<={pvalue_threshold}"] = (ttest_XY.pvalue <= pvalue_threshold).astype(float)
+
+    # some the ttest returns NaN when the variance is 0, so we fill with 0:
+    df.fillna(0, inplace=True)
+
+    # Reorder columns:
+    df = df[["dataset"] + [colname for colname in df.columns if colname != "dataset"]]
+
+    return df
+
+def custom_distance_correlation(dataset):
+    """
+    Compute distance correlation with custom distance metrics.
+    
+    Parameters:
+    - dataset: pandas DataFrame
+    
+    Returns:
+    - pandas DataFrame with distance correlation features
+    """
+    metric = 'chebyshev'  # You can change this to 'euclidean', 'manhattan', or 'minkowski'
+    variables = dataset.columns.drop(["X", "Y"])
+    
+    def compute_distance_correlation(x, y):
+        # Convert Series to numpy arrays and reshape
+        x_array = x.values.reshape(-1, 1)
+        y_array = y.values.reshape(-1, 1)
+        
+        x_dist = squareform(pdist(x_array, metric=metric))
+        y_dist = squareform(pdist(y_array, metric=metric))
+        return dcor.distance_correlation_sqr(x_dist, y_dist)
+    
+    df = []
+    for variable in variables:
+        df.append({
+            "variable": variable,
+            f"dcor_{metric}(v,X)": compute_distance_correlation(dataset[variable], dataset["X"]),
+            f"dcor_{metric}(v,Y)": compute_distance_correlation(dataset[variable], dataset["Y"]),
+        })
+    
+    df = pd.DataFrame(df)
+    df["dataset"] = dataset.name
+    
+    df[f"dcor_{metric}(X,Y)"] = compute_distance_correlation(dataset["X"], dataset["Y"])
+    
+    # Reorder columns:
+    df = df[["dataset", "variable"] + [colname for colname in df.columns if colname not in ["dataset", "variable"]]]
+    
+    return df
+
+
+
+def entropy_features(dataset):
+    """
+    Calculate entropy and conditional entropy features for each variable.
+    """
+    variables = dataset.columns.drop(["X", "Y"])
+    
+    df = []
+    for variable in variables:
+        
+        # Calculate conditional entropies
+        joint_vX, _, _ = np.histogram2d(dataset[variable], dataset["X"], bins=20)
+        joint_vY, _, _ = np.histogram2d(dataset[variable], dataset["Y"], bins=20)
+        
+        # Normalize the joint distributions
+        joint_vX = joint_vX / joint_vX.sum()
+        joint_vY = joint_vY / joint_vY.sum()
+        
+        # Calculate marginal distributions
+        p_v_X = joint_vX.sum(axis=1)
+        p_v_Y = joint_vY.sum(axis=1)
+        
+        # Calculate conditional entropies
+        cond_entropy_X_v = np.sum(p_v_X * entropy(joint_vX.T, axis=0))
+        cond_entropy_Y_v = np.sum(p_v_Y * entropy(joint_vY.T, axis=0))
+        
+        df.append({
+            "variable": variable,
+            "conditional_entropy(X|v)": cond_entropy_X_v,
+            "conditional_entropy(Y|v)": cond_entropy_Y_v,
+        })
+    
+    df = pd.DataFrame(df)
+    df["dataset"] = dataset.name
+    
+    # Reorder columns:
+    df = df[["dataset"] + [colname for colname in df.columns if colname != "dataset"]]
+    
+    return df
+
+
+
+def hilbert_schmidt_independence(dataset):
+    """
+    Compute the Hilbert-Schmidt Independence Criterion (HSIC) between variables.
+    Features:
+        - hsic(v, X)
+        - hsic(v, Y)
+        - hsic(X, Y)
+    """
+    variables = dataset.columns.drop(["X", "Y"])
+    
+    df = []
+    for variable in variables:
+        hsic_vX = hsic(dataset[variable].values, dataset["X"].values)
+        hsic_vY = hsic(dataset[variable].values, dataset["Y"].values)
+        df.append({
+            "variable": variable,
+            "hsic(v,X)": hsic_vX,
+            "hsic(v,Y)": hsic_vY,
+        })
+    
+    df = pd.DataFrame(df)
+    df["dataset"] = dataset.name
+    
+    hsic_XY = hsic(dataset["X"].values, dataset["Y"].values)
+    df["hsic(X,Y)"] = hsic_XY
+    
+    # Reorder columns
+    df = df[["dataset"] + [colname for colname in df.columns if colname != "dataset"]]
+    
+    return df
+
+def hsic(x, y, sigma=None):
+    """
+    Compute the HSIC between two variables x and y.
+    x and y are numpy arrays of shape (n_samples,)
+    """
+    n = x.shape[0]
+    x = x.reshape((n, -1))
+    y = y.reshape((n, -1))
+    
+    if sigma is None:
+        sigma = np.std(np.concatenate((x, y), axis=0))
+        if sigma == 0:
+            sigma = 1.0
+
+    # Compute the Gram matrices using RBF kernel
+    K = rbf_kernel(x, gamma=1.0/(2*sigma**2))
+    L = rbf_kernel(y, gamma=1.0/(2*sigma**2))
+    
+    # Center the Gram matrices
+    H = np.eye(n) - np.ones((n, n))/n
+    Kc = H @ K @ H
+    Lc = H @ L @ H
+    
+    # Compute HSIC
+    hsic_value = (1/(n-1)**2) * np.trace(Kc @ Lc)
+    return hsic_value
+
+
+
+def statistical_tests(dataset):
+    """
+    Compute p-values from statistical tests for each variable with X and Y.
+    """
+    variables = dataset.columns.drop(["X", "Y"])
+    
+    df = []
+    for variable in variables:
+        # Chi-square test
+        chi2_vX = chi2_contingency(pd.crosstab(dataset[variable], dataset["X"]))[1]
+        chi2_vY = chi2_contingency(pd.crosstab(dataset[variable], dataset["Y"]))[1]
+        
+        # Kolmogorov-Smirnov test
+        ks_vX = ks_2samp(dataset[variable], dataset["X"])[1]
+        ks_vY = ks_2samp(dataset[variable], dataset["Y"])[1]
+        
+        df.append({
+            "variable": variable,
+            "pvalue(chi2_test(v,X))": chi2_vX,
+            "pvalue(chi2_test(v,Y))": chi2_vY,
+            "pvalue(ks_test(v,X))": ks_vX,
+            "pvalue(ks_test(v,Y))": ks_vY,
+        })
+    
+    df = pd.DataFrame(df)
+    df["dataset"] = dataset.name
+    
+    # Reorder columns:
+    df = df[["dataset"] + [colname for colname in df.columns if colname != "dataset"]]
+    
+    return df
+
+def cross_entropy_features(dataset):
+    """
+    Compute cross-entropy based features for each variable with X and Y.
+    """
+    variables = dataset.columns.drop(["X", "Y"])
+    
+    def compute_cross_entropy(p, q):
+        # Ensure p and q are probability distributions
+        p = softmax(p)
+        q = softmax(q)
+        return -np.sum(p * np.log(q + 1e-10))
+    
+    df = []
+    for variable in variables:
+        # Normalize the data to [0, 1] range
+        scaler = MinMaxScaler()
+        v_normalized = scaler.fit_transform(dataset[[variable]]).flatten()
+        X_normalized = scaler.fit_transform(dataset[["X"]]).flatten()
+        Y_normalized = scaler.fit_transform(dataset[["Y"]]).flatten()
+        
+        cross_entropy_vX = compute_cross_entropy(v_normalized, X_normalized)
+        cross_entropy_vY = compute_cross_entropy(v_normalized, Y_normalized)
+        
+        # Compute cross-entropy with other variables
+        other_vars = [col for col in variables]
+        cross_entropies = []
+        for other_var in other_vars:
+            other_normalized = scaler.fit_transform(dataset[[other_var]]).flatten()
+            cross_entropies.append(compute_cross_entropy(v_normalized, other_normalized))
+        
+        df.append({
+            "variable": variable,
+            "cross_entropy(v,X)": cross_entropy_vX,
+            "cross_entropy(v,Y)": cross_entropy_vY,
+            "max(cross_entropy(v,others))": max(cross_entropies),
+            "min(cross_entropy(v,others))": min(cross_entropies),
+            "mean(cross_entropy(v,others))": np.mean(cross_entropies),
+            "std(cross_entropy(v,others))": np.std(cross_entropies),
+        })
+    
+    df = pd.DataFrame(df)
+    df["dataset"] = dataset.name
+    
+    # Compute cross-entropy between X and Y
+    X_normalized = scaler.fit_transform(dataset[["X"]]).flatten()
+    Y_normalized = scaler.fit_transform(dataset[["Y"]]).flatten()
+    df["cross_entropy(X,Y)"] = compute_cross_entropy(X_normalized, Y_normalized)
+    
+    # Reorder columns:
+    df = df[["dataset"] + [colname for colname in df.columns if colname != "dataset"]]
+    
+    return df
+
+
+
+def multi_mutual_information(dataset):
+    """
+    Compute multi-variable mutual information for each variable with X and Y.
+    """
+    variables = dataset.columns.drop(["X", "Y"])
+    
+    def compute_multi_mi(X, Y, Z):
+        # Discretize continuous variables
+        kbd = KBinsDiscretizer(n_bins=10, encode='ordinal', strategy='uniform')
+        X_disc = kbd.fit_transform(X.reshape(-1, 1))
+        Y_disc = kbd.fit_transform(Y.reshape(-1, 1))
+        Z_disc = kbd.fit_transform(Z.reshape(-1, 1))
+        
+        # Compute joint and marginal entropies
+        XYZ = np.c_[X_disc, Y_disc, Z_disc]
+        XY = np.c_[X_disc, Y_disc]
+        XZ = np.c_[X_disc, Z_disc]
+        YZ = np.c_[Y_disc, Z_disc]
+        
+        H_XYZ = mutual_info_regression(XYZ, XYZ[:, 0])[0]
+        H_XY = mutual_info_regression(XY, XY[:, 0])[0]
+        H_XZ = mutual_info_regression(XZ, XZ[:, 0])[0]
+        H_YZ = mutual_info_regression(YZ, YZ[:, 0])[0]
+        H_X = mutual_info_regression(X_disc, X_disc[:, 0])[0]
+        H_Y = mutual_info_regression(Y_disc, Y_disc[:, 0])[0]
+        H_Z = mutual_info_regression(Z_disc, Z_disc[:, 0])[0]
+        
+        # Compute multi-variable mutual information
+        return H_X + H_Y + H_Z - H_XY - H_XZ - H_YZ + H_XYZ
+    
+    df = []
+    for variable in variables:
+        multi_mi = compute_multi_mi(dataset[variable].values, dataset["X"].values, dataset["Y"].values)
+        
+        df.append({
+            "variable": variable,
+            "multi_mutual_information(v,X,Y)": multi_mi,
+        })
+    
+    df = pd.DataFrame(df)
+    df["dataset"] = dataset.name
+    
+    # Reorder columns:
+    df = df[["dataset"] + [colname for colname in df.columns if colname != "dataset"]]
+    
+    return df
