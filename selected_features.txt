@@ -1,0 +1,55 @@
+dimension
+corr(v,X)
+corr(v,Y)
+max(corr(v, others))
+min(corr(v, others))
+mean(corr(v, others))
+std(corr(v, others))
+corr(X,Y)
+MI(v,X)
+MI(v,Y)
+max(MI(v, others))
+min(MI(v, others))
+mean(MI(v, others))
+std(MI(v, others))
+MI(X,Y)
+spearman_corr(v,X)
+spearman_corr(v,Y)
+spearman_corr(X,Y)
+kendall_corr(v,X)
+kendall_corr(v,Y)
+kendall_corr(X,Y)
+dcor(v,X)
+dcor(v,Y)
+dcor(X,Y)
+MI(v,X)^2
+MI(v,Y)^2
+MI(X,Y)^2
+max(MI(v, others))^2
+min(MI(v, others))^2
+conditional_MI(v,X|Y)
+conditional_MI(v,Y|X)
+conditional_MI(X,Y|v)
+square_dimension
+max(spearman_corr(v, others))
+min(spearman_corr(v, others))
+mean(spearman_corr(v, others))
+std(spearman_corr(v, others))
+max(kendall_corr(v, others))
+min(kendall_corr(v, others))
+mean(kendall_corr(v, others))
+std(kendall_corr(v, others))
+partial_corr(v,X|Y)
+partial_corr(v,Y|X)
+partial_corr(X,Y|v)
+v~Y_coefficient
+v_squared~Y_coefficient
+v~X_coefficient
+v_squared~X_coefficient
+X~Y_coefficient
+v~Y_ridge_coefficient
+v~X_ridge_coefficient
+X~Y_ridge_coefficient
+cluster_count_0.3
+noise_count_0.3
+density_variation_0.3
