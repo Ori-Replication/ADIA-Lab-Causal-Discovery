@@ -669,3 +669,47 @@ def hilbert_schmidt_independence_rff(dataset, n_components=100, random_state=Non
     df = df[["dataset"] + [colname for colname in df.columns if colname != "dataset"]]
     
     return df
+
+def affine_invariant_distance_correlation(dataset):
+    """
+    Given a dataset, we compute the affine-invariant distance correlation-based features for each
+    variable, which are the affine-invariant distance correlation between that variable with X and Y,
+    as well as summary statistics (max, min, mean, std) of all pairs of affine-invariant distance correlations.
+    """
+    variables = dataset.columns.drop(["X", "Y"])
+
+    df = []
+    for variable in variables:
+        tmp = []
+        # Compute affine-invariant distance correlation between 'variable' and all other variables (excluding itself)
+        other_variables = dataset.columns.drop([variable])
+        for other_var in other_variables:
+            corr = dcor.distance_correlation_af_inv_sqr(dataset[variable], dataset[other_var])
+            tmp.append(corr)
+        tmp = pd.Series(tmp)  # Convert tmp to a Pandas Series
+
+        distance_correlation_v_X = dcor.distance_correlation_af_inv_sqr(dataset[variable], dataset["X"])
+        distance_correlation_v_Y = dcor.distance_correlation_af_inv_sqr(dataset[variable], dataset["Y"])
+        distance_correlation_X_Y = dcor.distance_correlation_af_inv_sqr(dataset["X"], dataset["Y"])
+        
+        df.append({
+            "variable": variable,
+            "af_dcor(v,X)": distance_correlation_v_X,
+            "af_dcor(v,Y)": distance_correlation_v_Y,
+            "max(af_dcor(v, others))": tmp.max(),
+            "min(af_dcor(v, others))": tmp.min(),
+            "mean(af_dcor(v, others))": tmp.mean(),
+            "std(af_dcor(v, others))": tmp.std(),
+            "25%(af_dcor(v, others))": tmp.quantile(0.25),
+            "75%(af_dcor(v, others))": tmp.quantile(0.75),
+        })
+
+    df = pd.DataFrame(df)
+    df["dataset"] = dataset.name
+
+    df["af_dcor(X,Y)"] = distance_correlation_X_Y
+
+    # Reorder columns:
+    df = df[["dataset"] + [colname for colname in df.columns if colname != "dataset"]]
+
+    return df
