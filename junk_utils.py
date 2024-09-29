@@ -937,3 +937,176 @@ def energy_distance_features(dataset):
     df = df[["dataset"] + [colname for colname in df.columns if colname != "dataset"]]
 
     return df
+def cluster_features(dataset):
+    variables = dataset.columns.drop(["X", "Y"]).tolist()
+    scaler = StandardScaler()
+    d_scaled = pd.DataFrame(scaler.fit_transform(dataset), columns=dataset.columns)
+
+    results = []
+    eps_values = [0.3]  # , 0.5, 0.7
+    
+    for variable in variables:
+        cluster_counts = []
+        noise_counts = []
+        avg_cluster_sizes = []
+        density_variations = []
+        feature_importances = []
+        silhouette_scores = []
+        
+        for eps in eps_values:
+            cluster_df = d_scaled[[variable, "X", "Y"]].copy()
+            dbscan = DBSCAN(eps=eps, min_samples=5)
+            cluster_df["cluster"] = dbscan.fit_predict(cluster_df)
+            
+            # 基本统计
+            cluster_count = len(set(cluster_df["cluster"])) - (1 if -1 in cluster_df["cluster"] else 0)
+            noise_count = (cluster_df["cluster"] == -1).sum()
+            cluster_counts.append(cluster_count)
+            noise_counts.append(noise_count)
+            
+            # 密度分析
+            cluster_sizes = cluster_df[cluster_df["cluster"] != -1]["cluster"].value_counts()
+            avg_cluster_size = cluster_sizes.mean() if not cluster_sizes.empty else 0
+            density_variation = cluster_sizes.std() / avg_cluster_size if avg_cluster_size > 0 else 0
+            avg_cluster_sizes.append(avg_cluster_size)
+            density_variations.append(density_variation)
+            
+            # 特征重要性
+            if cluster_count > 1:  # 确保有多个簇
+                feature_importance = abs(np.corrcoef(cluster_df[variable], cluster_df["cluster"]))[0, 1]
+            else:
+                feature_importance = 0
+            feature_importances.append(feature_importance)
+            
+            # 轮廓系数
+            non_noise_mask = cluster_df["cluster"] != -1
+            if len(set(cluster_df.loc[non_noise_mask, "cluster"])) > 1:
+                sil_score = silhouette_score(cluster_df.loc[non_noise_mask, [variable, "X", "Y"]], 
+                                             cluster_df.loc[non_noise_mask, "cluster"], 
+                                             metric="euclidean")
+            else:
+                sil_score = 0
+            silhouette_scores.append(sil_score)
+        
+        result = {
+            "variable": variable
+        }
+        for i, eps in enumerate(eps_values):
+            result.update({
+                f"cluster_count_{eps}": cluster_counts[i],             # 0.4730-0.4736
+                # f"noise_count_{eps}": noise_counts[i],                 # 0.4736-0.4740
+                # f"avg_cluster_size_{eps}": avg_cluster_sizes[i],     # 0.4740-0.4735
+                # f"density_variation_{eps}": density_variations[i],     # 0.4740-0.4741
+                # f"feature_importance_{eps}": feature_importances[i], # 0.4741-0.4736
+                # f"silhouette_score_{eps}": silhouette_scores[i]      # 0.4741-0.4723
+            })
+        results.append(result)
+
+    df = pd.DataFrame(results)
+    df["dataset"] = dataset.name
+
+    # Reorder columns:
+    df = df[["dataset"] + [colname for colname in df.columns if colname != "dataset"]]
+
+    return df
+
+def dml_estimate(data, Y_var, T_var, X_vars, n_splits=4, use_gpu=False):
+    """
+    使用双重机器学习估计T对Y的因果效应。
+    返回：
+    - result: 包含以下键的字典：
+        - 'theta': 估计的因果效应。
+        - 'se': 估计的标准误差。
+    """
+    # 从DataFrame中提取变量
+    Y = data[Y_var].values
+    T = data[T_var].values
+    X = data[X_vars].values
+
+    # 初始化残差
+    Y_residuals = np.zeros_like(Y)
+    T_residuals = np.zeros_like(T)
+
+    # 设置交叉拟合
+    kf = KFold(n_splits=n_splits, shuffle=True, random_state=42)
+
+    # LightGBM参数
+    params = {
+        'objective': 'regression',
+        'learning_rate': 0.1,
+        'num_leaves': 31,
+        'verbosity': -1,
+        'device_type': 'gpu' if use_gpu else 'cpu',
+        'gpu_platform_id': 1,
+        'gpu_device_id': 0,
+        'n_jobs': -1
+    }
+
+    # 如果使用GPU，加上其他GPU相关参数
+    if use_gpu:
+        # 根据最新的LightGBM文档，这些参数只在特定情况下需要
+        # 这里只设置device_type为'gpu'，其余参数使用默认值
+        params['max_bin'] = 63  # 建议在GPU模式下使用较小的max_bin值
+
+    # 交叉拟合循环
+    for train_index, test_index in kf.split(X):
+        # 将数据拆分为训练集和测试集
+        X_train, X_test = X[train_index], X[test_index]
+        Y_train, Y_test = Y[train_index], Y[test_index]
+        T_train, T_test = T[train_index], T[test_index]
+
+        # 结果模型
+        Y_model = LGBMRegressor(**params)
+        Y_model.fit(X_train, Y_train)
+        Y_pred = Y_model.predict(X_test)
+        Y_residuals[test_index] = Y_test - Y_pred
+
+        # 处理模型
+        T_model = LGBMRegressor(**params)
+        T_model.fit(X_train, T_train)
+        T_pred = T_model.predict(X_test)
+        T_residuals[test_index] = T_test - T_pred
+
+    # 使用残差进行线性回归估计因果效应
+    causal_model = LinearRegression(fit_intercept=False)
+    causal_model.fit(T_residuals.reshape(-1, 1), Y_residuals)
+    theta = causal_model.coef_[0]
+
+    # 计算标准误差
+    n = len(Y_residuals)
+    residuals = Y_residuals - theta * T_residuals
+    sigma2 = np.sum(residuals ** 2) / (n - 1)
+    T_residuals_variance = np.var(T_residuals, ddof=1)
+    se = np.sqrt(sigma2 / (n * T_residuals_variance))
+
+    # 返回结果
+    result = {
+        'theta': theta,
+        'se': se
+    }
+    return result
+
+def double_machine_learning(dataset):
+    variables = dataset.columns.drop(["X", "Y"])
+
+    df = []
+    for variable in variables:
+        # 判断v-X的因果效应，设置variables中的其他v和Y为控制变量
+        Y_var = "X"
+        T_var = variable
+        X_vars = [var for var in dataset.columns.tolist() if var not in [Y_var, T_var]]
+        result = dml_estimate(dataset, Y_var, T_var, X_vars, n_splits=4, use_gpu=False)
+
+        df.append({
+            "variable": variable,
+            "v~X_DML_theta": result['theta'],
+            # "v~X_DML_se": result['se']
+        })
+    
+    df = pd.DataFrame(df)
+    df["dataset"] = dataset.name
+    
+    # Reorder columns:
+    df = df[["dataset"] + [colname for colname in df.columns if colname != "dataset"]]
+
+    return df
