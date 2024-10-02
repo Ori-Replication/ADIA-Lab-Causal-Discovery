@@ -176,3 +176,72 @@ https://hub.crunchdao.com/competitions/causality-discovery/submit/via/notebook?p
 
 #### conditional_mutual_information
 
+## Causal Learn
+
+### 检验方法
+#### Fisher's Z 检验（fisherz）
+1. **相关系数计算**: 对于两个变量 $X$ 和 $Y$，在给定条件变量集 $S$ 下，计算其偏相关系数 $r_{XY⋅S}$。
+2. **Fisher Z 变换**: 将偏相关系数 $r$ 转换为 Fisher's Z 统计量：$Z=\frac{1}{2}ln⁡(\frac{1+r}{1−r})$
+3. **检验统计量**: 统计量 $Z$ 服从标准正态分布。根据 $Z$ 值计算其对应的$p$值，用于判断 $X$ 和 $Y$ 在条件集 $S$ 下是否独立。
+#### 核方法独立性检验（kci）
+1. **条件独立性的定义**: 在统计学中，给定一个条件集 $Z$，如果变量 $X$ 和 $Y$ 在 $Z$ 下独立，记作 $X \perp Y | Z$，则表明在控制了 $Z$ 的影响后， $X$ 和 $Y$ 之间不存在统计上的关联。
+2. **核方法**: 通过将数据映射到高维的特征空间（通常是希尔伯特空间）来捕捉数据的非线性结构。
+   - 高斯核（Gaussian Kernel）: $k(x,y) = \exp \left( -\frac{\|x-y\|^2}{2\sigma^2} \right)$
+   - 线性核（Linear Kernel）: $k(x,y) = x^\top y$
+   - 多项式核（Polynomial Kernel）: $k(x,y) = (\gamma x^\top y + c)^d$
+3. KCI检验基于**条件交叉协方差**（Conditional Cross Covariance）的概念，该方法通过将变量 $X$ 、 $Y$ 和 $Z$ 映射到希尔伯特空间中的特征映射，然后评估 $X$ 和 $Y$ 在给定 $Z$ 的条件下是否独立。具体步骤如下：
+   - **特征映射**: 使用核函数将原始数据映射到高维特征空间。
+   - **条件交叉协方差**: 计算 $X$ 和 $Y$ 在给定 $Z$ 的条件下的交叉协方差。
+   - **统计量计算**: 基于交叉协方差计算检验统计量，该统计量衡量 $X$ 和 $Y$ 在给定 $Z$ 下的依赖程度。
+   - **显著性检验**: 通过置换检验或渐近分布方法计算 $p$ 值，以决定是否拒绝独立性假设。
+
+4. 设有随机变量 $X$, $Y$ 和 $Z$，KCI检验的目标是检验 $X \perp Y | Z$。假设我们有 $n$ 个观测样本 $\{(x_i, y_i, z_i)\}_{i=1}^n$。
+
+   - 核矩阵构建:
+
+     - $K: X$ 的核矩阵, $K_{ij} = k_X(x_i, x_j)$
+
+     - $L: Y$ 的核矩阵, $L_{ij} = k_Y(y_i, y_j)$
+
+     - $M: Z$ 的核矩阵, $M_{ij} = k_Z(z_i, z_j)$
+
+   - 中心化:
+     对核矩阵进行中心化处理，去除均值的影响:
+
+   $$
+   \tilde{K} = HKH, \quad \tilde{L} = HLH, \quad \tilde{M} = HMH
+   $$
+
+   ​       其中 $H = I_n - \frac{1}{n}\mathbf{1}_n\mathbf{1}_n^\top$ 为中心化矩阵。
+
+   - 条件交互差:
+     通过线性回归将 $X$ 和 $Y$ 对 $Z$ 进行回归，得到残差:
+
+   $$
+   \hat{K} = \tilde{K} - \tilde{M}(\tilde{M})^+\tilde{K}
+   $$
+
+   $$
+   \hat{L} = \tilde{L} - \tilde{M}(\tilde{M})^+\tilde{L}
+   $$
+
+   ​        其中 $(\tilde{M})^+$ 表示 $\tilde{M}$ 的伪逆。
+
+   - 检验统计量:
+     计算 $\hat{K}$ 和 $\hat{L}$ 的Trace乘积作为检验统计量:
+
+   $$
+   \text{Statistic} = \text{Trace}(\hat{K}\hat{L})
+   $$
+
+   ​       该统计量在 $X \perp Y | Z$ 的原假设下趋近于零，统计量越大，表明 $X$ 和 $Y$ 在 $Z$ 条件下越不独立。
+
+   - p值计算:
+     通过置换检验或使用渐近分布，计算统计量对应的 p 值，以决定是否拒绝独立性假设。
+
+### Constrain-Based
+
+#### PC
+
+- 显著性水平：0.05
+
