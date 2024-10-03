@@ -1262,3 +1262,137 @@ def ExactSearch_nonlinear_feature(dataset):
     df = df[["dataset"] + [colname for colname in df.columns if colname != "dataset"]]
 
     return df
+
+def FCI_estimate(dataset, alpha=0.05, indep_test='fisherz', kernel=None, 
+               depth=-1, max_path_length=-1, verbose=False, show_progress=False):
+    """
+    使用FCI算法进行因果发现，并应用先验知识。
+
+    参数:
+    - dataset (pd.DataFrame): 输入的数据框，包含'X'、'Y'和其他协变量。
+    - alpha (float): 显著性水平，默认值为0.05。
+    - indep_test (str): 独立性检验方法，默认值为'fisherz'。
+    - kernel (str): 核函数类型，默认值为'linear'。
+    - verbose (bool): 是否打印详细输出，默认值为False。
+    - show_progress (bool): 是否显示算法进度，默认值为False。
+
+    返回:
+    - adj_df (pd.DataFrame): 因果图的邻接矩阵，格式为pivot_table。
+    """
+    
+    # 1. 将数据框转换为numpy.ndarray
+    data = dataset.values
+
+    # 检验相关系数是否奇异，如果存在多重共线性，对存在多重共线性的变量添加随机扰动
+    data = handle_multicollinearity(data)
+    
+    # 2. 定义先验知识：'X' → 'Y'
+    # 创建GraphNode对象
+    try:
+        node_X = GraphNode('X')
+        node_Y = GraphNode('Y')
+    except Exception as e:
+        raise ValueError("确保数据框中包含名为'X'和'Y'的列。") from e
+    
+    # 初始化BackgroundKnowledge对象并添加先验知识
+    bk = BackgroundKnowledge().add_required_by_node(node_X, node_Y)
+
+    # 3. 配置核参数
+    if indep_test == 'kci':
+        if kernel is None:
+            kernel = 'linear'
+        if kernel == 'linear':
+            kernel_kwargs = {
+                'kernelX': 'Linear', 
+                'kernelY': 'Linear', 
+                'kernelZ': 'Linear', 
+                'approx': True,           # 使用伽玛近似
+                'nullss': 1000,          # 原假设下模拟的样本量
+            }
+        elif kernel == 'polynomial':
+            kernel_kwargs = {
+                'kernelX': 'Polynomial', 
+                'kernelY': 'Polynomial', 
+                'kernelZ': 'Polynomial', 
+                'polyd': 3,               # 多项式次数设置为3
+                'approx': True,           # 使用伽玛近似
+                'nullss': 1000,          # 原假设下模拟的样本量
+            }
+        elif kernel == 'gaussian':
+            kernel_kwargs = {
+                'kernelX': 'Gaussian', 
+                'kernelY': 'Gaussian', 
+                'kernelZ': 'Gaussian', 
+                'est_width': 'empirical', # 使用经验宽度
+                'approx': True,           # 使用伽玛近似
+                'nullss': 1000,          # 原假设下模拟的样本量
+            }
+        elif kernel == 'mix':
+            kernel_kwargs = {
+                'kernelX': 'Polynomial', 
+                'kernelY': 'Polynomial', 
+                'kernelZ': 'Gaussian',     # Z使用高斯核
+                'polyd': 3,                # 多项式次数设置为3
+                'est_width': 'median',     # Z的高斯核带宽使用中位数技巧
+                'approx': True,            # 使用伽玛近似
+                'nullss': 1000,           # 原假设下模拟的样本量
+            }
+        else:
+            raise ValueError(f'Unknown kernel: {kernel}')
+    else:
+        kernel_kwargs = {}
+
+    # 4. 运行FCI算法，传入先验知识
+    try:
+        g, edges = fci(data, 
+                alpha=alpha, 
+                independence_test_method=indep_test, 
+                depth=depth,
+                max_path_length=max_path_length,
+                background_knowledge=bk, 
+                verbose=verbose, 
+                show_progress=show_progress,
+                **kernel_kwargs
+        )
+
+        # 5. 提取邻接矩阵
+        adj_matrix = g.graph
+    except Exception as e:
+        adj_matrix = np.zeros((data.shape[1], data.shape[1]))
+    
+    # 6. 将邻接矩阵转换为pandas DataFrame，并设置行列索引为原数据框的列名
+    adj_df = pd.DataFrame(adj_matrix, index=dataset.columns, columns=dataset.columns)
+    
+    return adj_df
+
+def FCI_feature(dataset):
+    variables = dataset.columns.drop(["X", "Y"]).tolist()
+
+    estimate_adj_df_bidirectional = FCI_estimate(dataset)  # PAG
+    estimate_adj_df_dag = estimate_adj_df_bidirectional.astype('int')
+
+    df = []
+    for variable in variables:
+        # 检查变量与'X'和'Y'之间的边
+        v_to_X = estimate_adj_df_dag.loc[variable, 'X']
+        X_to_v = estimate_adj_df_dag.loc['X', variable]
+        v_to_Y = estimate_adj_df_dag.loc[variable, 'Y']
+        Y_to_v = estimate_adj_df_dag.loc['Y', variable]
+        X_to_Y = estimate_adj_df_dag.loc['X', 'Y']
+
+        df.append({
+            "variable": variable,
+            "FCI(v,X)": v_to_X,
+            "FCI(X,v)": X_to_v,
+            "FCI(v,Y)": v_to_Y,
+            "FCI(Y,v)": Y_to_v,
+            "FCI(X,Y)": X_to_Y
+        })
+
+    df = pd.DataFrame(df)
+    df["dataset"] = dataset.name
+
+    # Reorder columns:
+    df = df[["dataset"] + [colname for colname in df.columns if colname != "dataset"]]
+
+    return df
