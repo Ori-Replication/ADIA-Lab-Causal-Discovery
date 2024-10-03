@@ -1110,3 +1110,155 @@ def double_machine_learning(dataset):
     df = df[["dataset"] + [colname for colname in df.columns if colname != "dataset"]]
 
     return df
+
+def PC_estimate(dataset, mcv, significance, isprint):
+    dim = dataset.shape[1]
+    if mcv == 'dim-1':
+        mcv = dim - 1
+    else:
+        mcv = int(mcv)
+
+    # 使用estimate方法学习DAG结构
+    est = PC(dataset)
+    estimated_model = est.estimate(
+        variant='parallel',
+        ci_test='pearsonr',
+        max_cond_vars=mcv,  # 减少最大条件变量数
+        return_type='dag',
+        significance_level=significance,
+        n_jobs=-1,  # 使用所有可用的CPU核心
+    )
+
+    # 打印估计的边
+    if isprint:
+        print("Estimated edges:")
+        print(estimated_model.edges())
+
+    # 将估计的模型转换为邻接矩阵格式
+    adj_matrix = np.zeros((dim, dim), dtype=int)
+    for edge in estimated_model.edges():
+        i = dataset.columns.get_loc(edge[0])
+        j = dataset.columns.get_loc(edge[1])
+        adj_matrix[i, j] = 1
+
+    # 打印估计的邻接矩阵
+    if isprint:
+        print("\nEstimated adjacency matrix:")
+        print(adj_matrix)
+
+    return adj_matrix
+
+
+def ExactSearch_merge_feature(dataset):
+    def Squared_col(dataset, variables):
+        for var in variables:
+            dataset[var] = dataset[var] ** 2
+        return dataset
+
+    def Cos_col(dataset, variables):
+        for var in variables:
+            dataset[var] = np.cos(dataset[var])
+        return dataset
+
+    def Sin_col(dataset, variables):
+        for var in variables:
+            dataset[var] = np.sin(dataset[var])
+        return dataset
+
+    def merge_dags(dag_dfs):
+        if not dag_dfs:
+            return pd.DataFrame()  # 如果列表为空，返回一个空的 DataFrame
+        
+        # 初始化一个与输入的 DataFrame 形状相同的全零 DataFrame
+        merged_dag = pd.DataFrame(0, index=dag_dfs[0].index, columns=dag_dfs[0].columns)
+        
+        # 遍历每个 DAG 数据框，进行逻辑或操作
+        for dag_df in dag_dfs:
+            merged_dag |= dag_df  # 使用位运算符进行逻辑或操作
+            
+        return merged_dag
+    
+    variables = dataset.columns.drop(["X", "Y"]).tolist()
+
+    Raw_dataset = dataset.copy()
+    Squared_dataset = Squared_col(dataset, variables)
+    Cos_dataset = Cos_col(dataset, variables)
+    Sin_dataset = Sin_col(dataset, variables)
+    datasets = [Raw_dataset, Squared_dataset, Cos_dataset, Sin_dataset]
+    estimate_adj_df_dags = [ExactSearch_estimate(d).astype(int) for d in datasets]
+    estimate_adj_df_dag = merge_dags(estimate_adj_df_dags)
+
+    df = []
+    for variable in variables:
+        # 检查变量与'X'和'Y'之间的边
+        v_to_X = estimate_adj_df_dag.loc[variable, 'X']
+        X_to_v = estimate_adj_df_dag.loc['X', variable]
+        v_to_Y = estimate_adj_df_dag.loc[variable, 'Y']
+        Y_to_v = estimate_adj_df_dag.loc['Y', variable]
+        X_to_Y = estimate_adj_df_dag.loc['X', 'Y']
+
+        df.append({
+            "variable": variable,
+            "ExactSearch-merge(v,X)": v_to_X,
+            "ExactSearch-merge(X,v)": X_to_v,
+            "ExactSearch-merge(v,Y)": v_to_Y,
+            "ExactSearch-merge(Y,v)": Y_to_v,
+            "ExactSearch-merge(X,Y)": X_to_Y
+        })
+
+    df = pd.DataFrame(df)
+    df["dataset"] = dataset.name
+
+    # Reorder columns:
+    df = df[["dataset"] + [colname for colname in df.columns if colname != "dataset"]]
+
+    return df
+
+def ExactSearch_nonlinear_feature(dataset):
+    def Squared_col(dataset, variables):
+        for var in variables:
+            dataset[var] = dataset[var] ** 2
+        return dataset
+
+    def Cos_col(dataset, variables):
+        for var in variables:
+            dataset[var] = np.cos(dataset[var])
+        return dataset
+
+    def Sin_col(dataset, variables):
+        for var in variables:
+            dataset[var] = np.sin(dataset[var])
+        return dataset
+    
+    variables = dataset.columns.drop(["X", "Y"]).tolist()
+
+    Squared_dataset = Squared_col(dataset, variables)
+    Cos_dataset = Cos_col(dataset, variables)
+    Sin_dataset = Sin_col(dataset, variables)
+
+    nonlinears = ['sq', 'cos', 'sin']
+    datasets = [Squared_dataset, Cos_dataset, Sin_dataset]
+    estimate_adj_df_dags = [ExactSearch_estimate(d).astype(int) for d in datasets]
+
+    df = []
+    for variable in variables:
+        result = {"variable": variable}
+        for nonlinear, estimate_adj_df_dag in zip(nonlinears, estimate_adj_df_dags):
+            # 检查变量与'X'和'Y'之间的边
+            v_to_X = estimate_adj_df_dag.loc[variable, 'X']
+            X_to_v = estimate_adj_df_dag.loc['X', variable]
+            v_to_Y = estimate_adj_df_dag.loc[variable, 'Y']
+            Y_to_v = estimate_adj_df_dag.loc['Y', variable]
+            result[f"ExactSearch(v-{nonlinear},X)"] = v_to_X
+            result[f"ExactSearch(X,v-{nonlinear})"] = X_to_v
+            result[f"ExactSearch(v-{nonlinear},Y)"] = v_to_Y
+            result[f"ExactSearch(Y,v-{nonlinear})"] = Y_to_v
+        df.append(result)
+
+    df = pd.DataFrame(df)
+    df["dataset"] = dataset.name
+
+    # Reorder columns:
+    df = df[["dataset"] + [colname for colname in df.columns if colname != "dataset"]]
+
+    return df
