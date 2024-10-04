@@ -1396,3 +1396,61 @@ def FCI_feature(dataset):
     df = df[["dataset"] + [colname for colname in df.columns if colname != "dataset"]]
 
     return df
+
+# 旧代码，提升约一个点
+
+from sklearn.preprocessing import PolynomialFeatures
+
+# 提取特征矩阵
+X = X_y_group_train.drop(['variable', 'dataset', 'label', 'y'], axis=1)
+
+# 使用随机森林获取特征重要性
+from sklearn.ensemble import RandomForestClassifier
+
+model = RandomForestClassifier(n_estimators=100, random_state=42, max_depth = 13)
+model.fit(X_train, y_train)
+importances = model.feature_importances_
+
+# 将特征重要性与特征名称对应
+feature_importance = pd.Series(importances, index=X.columns)
+# 选择重要性排名前10的特征
+top_features = feature_importance.nlargest(10).index.tolist()
+
+# 仅对这些特征生成交互项
+X_top = X[top_features]
+
+poly = PolynomialFeatures(degree=2, interaction_only=True, include_bias=False)
+X_interactions_top = poly.fit_transform(X_top)
+feature_names_top = poly.get_feature_names_out(input_features=top_features)
+X_interactions_top_df = pd.DataFrame(X_interactions_top, columns=feature_names_top)
+
+# 将新特征与原始特征合并
+X_train_new = pd.concat([X.reset_index(drop=True), X_interactions_top_df], axis=1)
+
+"""PPS"""
+def PPS_feature(dataset):
+    variables = dataset.columns.drop(["X", "Y"]).tolist()
+
+    matrix_df = pps_matrix(dataset)
+    pivot_df = pd.pivot_table(matrix_df, index='x', columns='y', values='ppscore')
+
+    df = []
+    for variable in variables:
+        df.append({
+            "variable": variable,
+            "PPS(v,X)": pivot_df.loc[variable, 'X'],
+            "PPS(X,v)": pivot_df.loc['X', variable],
+            "PPS(v,Y)": pivot_df.loc[variable, 'Y'],
+            "PPS(Y,v)": pivot_df.loc['Y', variable],
+            "PPS(X,Y)": pivot_df.loc['X', 'Y'],
+            "max(PPS(v,others))": pivot_df.loc[variable, variables].max(),
+            "mean(PPS(v,others))": pivot_df.loc[variable, variables].mean(),
+        })
+
+    df = pd.DataFrame(df)
+    df["dataset"] = dataset.name
+
+    # Reorder columns:
+    df = df[["dataset"] + [colname for colname in df.columns if colname != "dataset"]]
+
+    return df
