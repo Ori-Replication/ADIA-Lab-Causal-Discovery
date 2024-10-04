@@ -1427,3 +1427,30 @@ X_interactions_top_df = pd.DataFrame(X_interactions_top, columns=feature_names_t
 # 将新特征与原始特征合并
 X_train_new = pd.concat([X.reset_index(drop=True), X_interactions_top_df], axis=1)
 
+"""PPS"""
+def PPS_feature(dataset):
+    variables = dataset.columns.drop(["X", "Y"]).tolist()
+
+    matrix_df = pps_matrix(dataset)
+    pivot_df = pd.pivot_table(matrix_df, index='x', columns='y', values='ppscore')
+
+    df = []
+    for variable in variables:
+        df.append({
+            "variable": variable,
+            "PPS(v,X)": pivot_df.loc[variable, 'X'],
+            "PPS(X,v)": pivot_df.loc['X', variable],
+            "PPS(v,Y)": pivot_df.loc[variable, 'Y'],
+            "PPS(Y,v)": pivot_df.loc['Y', variable],
+            "PPS(X,Y)": pivot_df.loc['X', 'Y'],
+            "max(PPS(v,others))": pivot_df.loc[variable, variables].max(),
+            "mean(PPS(v,others))": pivot_df.loc[variable, variables].mean(),
+        })
+
+    df = pd.DataFrame(df)
+    df["dataset"] = dataset.name
+
+    # Reorder columns:
+    df = df[["dataset"] + [colname for colname in df.columns if colname != "dataset"]]
+
+    return df
