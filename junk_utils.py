@@ -1454,3 +1454,135 @@ def PPS_feature(dataset):
     df = df[["dataset"] + [colname for colname in df.columns if colname != "dataset"]]
 
     return df
+
+"""MIC"""
+class MIC_by_GU(object):
+    def __init__(self, x_num=[None, None], y_num=[None, None]):
+        self.x_max_num = x_num[1]
+        self.x_min_num = x_num[0]
+        self.y_min_num = y_num[0]
+        self.y_max_num = y_num[1]
+
+        self.x = None
+        self.y = None
+
+    def cal_mut_info(self, p_matrix):
+        """
+        计算互信息值
+        :param p_matrix: 变量X和Y的构成的概率矩阵
+        :return: 互信息值
+        """
+        mut_info = 0
+        p_matrix = np.array(p_matrix)
+        for i in range(p_matrix.shape[0]):
+            for j in range(p_matrix.shape[1]):
+                if p_matrix[i, j] != 0:
+                    mut_info += p_matrix[i, j] * np.log2(
+                        p_matrix[i, j] / (p_matrix[i, :].sum() * p_matrix[:, j].sum())
+                    )
+        return mut_info / np.log2(min(p_matrix.shape[0], p_matrix.shape[1]))
+
+    def divide_bin(self, x_num, y_num):
+        """
+        指定在两个变量方向上需划分的网格数，返回概率矩阵
+        :param x_num:
+        :param y_num:
+        :return: p_matrix
+        """
+        p_matrix = np.zeros([x_num, y_num])
+        x_bin = np.linspace(self.x.min(), self.x.max() + 1, x_num + 1)
+        y_bin = np.linspace(self.y.min(), self.y.max() + 1, y_num + 1)
+        for i in range(x_num):
+            for j in range(y_num):
+                p_matrix[i, j] = sum(
+                    [
+                        1
+                        if (
+                            self.x[value] < x_bin[i + 1]
+                            and self.x[value] >= x_bin[i]
+                            and self.y[value] < y_bin[j + 1]
+                            and self.y[value] >= y_bin[j]
+                        )
+                        else 0
+                        for value in range(self.x.shape[0])
+                    ]
+                ) / self.x.shape[0]
+        return p_matrix
+
+    def cal_MIC(self, x, y):
+        """
+        计算两个变量之间的MIC
+        :param x: 第一个变量的数据
+        :param y: 第二个变量的数据
+        :return: MIC值
+        """
+        self.x = np.array(x).reshape((-1,))
+        self.y = np.array(y).reshape((-1,))
+        if not self.x_max_num:
+            self.x_max_num = int(round(self.x.shape[0] ** 0.3, 0))
+            self.y_max_num = self.x_max_num
+            self.x_min_num = 2
+            self.y_min_num = 2
+        max_mic = -np.inf  # 初始化为负无穷大
+        best_grid = (None, None)  # 初始化最佳网格参数
+
+        # 遍历所有可能的网格划分组合
+        for i in range(self.x_min_num, self.x_max_num + 1):
+            for j in range(self.y_min_num, self.y_max_num + 1):
+                p_matrix = self.divide_bin(i, j)
+                mic = self.cal_mut_info(p_matrix)
+                # 更新最大MIC及对应的网格参数
+                if mic > max_mic:
+                    max_mic = mic
+                    best_grid = (i, j)
+
+        # 打印出使MIC达到最大值的网格参数
+        print(f"最大MIC值: {max_mic:.4f}, 最佳网格参数: X网格数={best_grid[0]}, Y网格数={best_grid[1]}")
+        return max_mic
+
+    def cal_MIC_for_df(self, df):
+        """
+        计算数据框中每对列之间的MIC，并返回一个对称的方阵数据框
+        :param df: 输入的数据框，包含多个列
+        :return: 包含MIC值的对称方阵数据框，主对角线为1
+        """
+        columns = df.columns
+        num_cols = len(columns)
+        # 初始化MIC矩阵为全零
+        mic_matrix = np.zeros((num_cols, num_cols))
+        # 设置主对角线为1
+        np.fill_diagonal(mic_matrix, 1)
+
+        # 遍历每对列，计算MIC
+        for i in range(num_cols):
+            for j in range(i + 1, num_cols):
+                mic = self.cal_MIC(df.iloc[:, i], df.iloc[:, j])
+                mic_matrix[i, j] = mic
+                mic_matrix[j, i] = mic  # 对称赋值
+
+        # 创建结果数据框
+        mic_df = pd.DataFrame(mic_matrix, index=columns, columns=columns)
+        return mic_df
+    
+def maximal_information_coefficient(dataset):
+    variables = dataset.columns.drop(["X", "Y"]).tolist()
+    mic_tool = MIC_by_GU()
+
+    df = []
+    for variable in variables:
+        v_X = mic_tool.cal_MIC(dataset[variable], dataset['X'])
+        v_Y = mic_tool.cal_MIC(dataset[variable], dataset['Y'])
+
+        df.append({
+            "variable": variable,
+            "MIC(v,X)": v_X,
+            "MIC(v,Y)": v_Y,
+        })
+
+    df = pd.DataFrame(df)
+    df["dataset"] = dataset.name
+
+    # Reorder columns:
+    df = df[["dataset"] + [colname for colname in df.columns if colname != "dataset"]]
+
+    return df
