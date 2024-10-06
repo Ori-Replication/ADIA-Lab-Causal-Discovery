@@ -1586,3 +1586,43 @@ def maximal_information_coefficient(dataset):
     df = df[["dataset"] + [colname for colname in df.columns if colname != "dataset"]]
 
     return df
+
+def ANM_feature(dataset):
+    """
+    Given a dataset, we compute the ANM-based features for each
+    variable, which are the p-values of ANM test between that variable with X and Y.
+    """
+    variables = dataset.columns.drop(["X", "Y"])
+    anm = ANM()
+
+    df = []
+    for variable in variables:
+        # Compute ANM p-values between v and X
+        p_value_v_X, p_value_X_v = anm.cause_or_effect(dataset[variable].values.reshape(-1, 1), 
+                                                       dataset["X"].values.reshape(-1, 1))
+        
+        # Compute ANM p-values between v and Y
+        p_value_v_Y, p_value_Y_v = anm.cause_or_effect(dataset[variable].values.reshape(-1, 1), 
+                                                       dataset["Y"].values.reshape(-1, 1))
+        
+        df.append({
+            "variable": variable,
+            "ANM_p_value(v->X)": p_value_v_X,
+            "ANM_p_value(X->v)": p_value_X_v,
+            "ANM_p_value(v->Y)": p_value_v_Y,
+            "ANM_p_value(Y->v)": p_value_Y_v,
+        })
+
+    df = pd.DataFrame(df)
+    df["dataset"] = dataset.name
+
+    # Compute ANM p-values between X and Y
+    p_value_X_Y, p_value_Y_X = anm.cause_or_effect(dataset["X"].values.reshape(-1, 1), 
+                                                   dataset["Y"].values.reshape(-1, 1))
+    df["ANM_p_value(X->Y)"] = p_value_X_Y
+    df["ANM_p_value(Y->X)"] = p_value_Y_X
+
+    # Reorder columns:
+    df = df[["dataset"] + [colname for colname in df.columns if colname != "dataset"]]
+    
+    return df
