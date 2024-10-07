@@ -1626,3 +1626,133 @@ def ANM_feature(dataset):
     df = df[["dataset"] + [colname for colname in df.columns if colname != "dataset"]]
     
     return df
+
+###### 偏距离协方差的工具函数
+def double_centered_distance_matrix(X):
+    """Compute the double centered distance matrix for X."""
+    n = X.shape[0]
+    dist_matrix = squareform(pdist(X[:, None]))  # Compute pairwise distances
+    row_mean = np.mean(dist_matrix, axis=1, keepdims=True)
+    col_mean = np.mean(dist_matrix, axis=0, keepdims=True)
+    total_mean = np.mean(dist_matrix)
+
+    # Double-centering the matrix
+    A = dist_matrix - row_mean - col_mean + total_mean
+    return A
+
+def distance_covariance(X, Y):
+    """Compute distance covariance between X and Y."""
+    A = double_centered_distance_matrix(X)
+    B = double_centered_distance_matrix(Y)
+    dcov = np.mean(A * B)
+    return dcov
+
+def partial_distance_covariance(X, Y, Z):
+    """Compute partial distance covariance between X and Y given Z."""
+    dcov_XY = distance_covariance(X, Y)
+    dcov_XZ = distance_covariance(X, Z)
+    dcov_YZ = distance_covariance(Y, Z)
+    dcov_ZZ = distance_covariance(Z, Z)
+
+    # Partial distance covariance formula
+    pdcov = dcov_XY - (dcov_XZ * dcov_YZ) / dcov_ZZ
+    return pdcov
+
+"""偏距离协方差"""
+def partial_distance_covariance_dataset(dataset):
+    """
+    Given a dataset, we compute the partial distance covariance-based features for each
+    variable, which are the partial distance covariance between that variable with X and Y,
+    using each as the conditioning variable.
+    """
+    variables = dataset.columns.drop(["X", "Y"])
+
+    df = []
+    for variable in variables:
+        pdcov_v_X_given_Y = partial_distance_covariance(dataset[variable].values, dataset["X"].values, dataset["Y"].values)
+        pdcov_v_Y_given_X = partial_distance_covariance(dataset[variable].values, dataset["Y"].values, dataset["X"].values)
+        pdcov_X_Y_given_v = partial_distance_covariance(dataset["X"].values, dataset["Y"].values, dataset[variable].values)
+
+        df.append({
+            "variable": variable,
+            "pdcov(v,X|Y)": pdcov_v_X_given_Y,
+            "pdcov(v,Y|X)": pdcov_v_Y_given_X,
+            "pdcov(X,Y|v)": pdcov_X_Y_given_v,
+        })
+
+    df = pd.DataFrame(df)
+    df["dataset"] = dataset.name
+
+    # Reorder columns:
+    df = df[["dataset", "variable", "pdcov(v,X|Y)", "pdcov(v,Y|X)", "pdcov(X,Y|v)"]]
+
+    return df
+
+"""条件协方差"""
+def coditional_covariance(dataset):
+    variables = dataset.columns.drop(["X", "Y"]).tolist()
+    # Cov(X,Y)
+    cov_xy = dataset["X"].cov(dataset["Y"])
+
+    df = []
+    for variable in variables:
+        # Cov(X,Y|v)
+        v = dataset[variable]
+        X = dataset['X']
+        Y = dataset['Y']
+        
+        # 回归 X 对 v，并获取残差
+        X_model = sm.OLS(X, sm.add_constant(v)).fit()
+        X_residual = X_model.resid
+        
+        # 回归 Y 对 v，并获取残差
+        Y_model = sm.OLS(Y, sm.add_constant(v)).fit()
+        Y_residual = Y_model.resid
+        
+        # 计算残差之间的协方差，即条件协方差
+        cov_conditional = X_residual.cov(Y_residual)
+
+        df.append({
+            "variable": variable,
+            "Conditional_Cov(X,Y|v)": cov_conditional,
+        })
+
+    df = pd.DataFrame(df)
+    df["dataset"] = dataset.name
+
+    df["Cov(X,Y)"] = cov_xy
+
+    # Reorder columns:
+    df = df[["dataset"] + [colname for colname in df.columns if colname != "dataset"]]
+
+    return df
+
+"""距离协方差"""
+def partial_distance_covariance_test_collider(dataset):
+    variables = dataset.columns.drop(["X", "Y"]).tolist()
+    # Cov(X,Y)
+    X = dataset['X'].values.reshape(-1, 1)
+    Y = dataset['Y'].values.reshape(-1, 1)
+    cov_xy = dcor.distance_covariance(X, Y) 
+
+    df = []
+    for variable in variables:
+        # Cov(X,Y|v)
+        v = dataset[variable].values.reshape(-1, 1)
+
+        cov_xy_partial = dcor.partial_distance_covariance(X, Y, v) 
+        
+        df.append({
+            "variable": variable,
+            "Partial_Distance_Cov(X,Y|v)": cov_xy_partial,
+        })
+
+    df = pd.DataFrame(df)
+    df["dataset"] = dataset.name
+
+    df["Distance_Cov(X,Y)"] = cov_xy
+
+    # Reorder columns:
+    df = df[["dataset"] + [colname for colname in df.columns if colname != "dataset"]]
+
+    return df
