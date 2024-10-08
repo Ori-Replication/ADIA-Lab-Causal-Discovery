@@ -1626,3 +1626,251 @@ def ANM_feature(dataset):
     df = df[["dataset"] + [colname for colname in df.columns if colname != "dataset"]]
     
     return df
+
+###### 偏距离协方差的工具函数
+def double_centered_distance_matrix(X):
+    """Compute the double centered distance matrix for X."""
+    n = X.shape[0]
+    dist_matrix = squareform(pdist(X[:, None]))  # Compute pairwise distances
+    row_mean = np.mean(dist_matrix, axis=1, keepdims=True)
+    col_mean = np.mean(dist_matrix, axis=0, keepdims=True)
+    total_mean = np.mean(dist_matrix)
+
+    # Double-centering the matrix
+    A = dist_matrix - row_mean - col_mean + total_mean
+    return A
+
+def distance_covariance(X, Y):
+    """Compute distance covariance between X and Y."""
+    A = double_centered_distance_matrix(X)
+    B = double_centered_distance_matrix(Y)
+    dcov = np.mean(A * B)
+    return dcov
+
+def partial_distance_covariance(X, Y, Z):
+    """Compute partial distance covariance between X and Y given Z."""
+    dcov_XY = distance_covariance(X, Y)
+    dcov_XZ = distance_covariance(X, Z)
+    dcov_YZ = distance_covariance(Y, Z)
+    dcov_ZZ = distance_covariance(Z, Z)
+
+    # Partial distance covariance formula
+    pdcov = dcov_XY - (dcov_XZ * dcov_YZ) / dcov_ZZ
+    return pdcov
+
+"""偏距离协方差"""
+def partial_distance_covariance_dataset(dataset):
+    """
+    Given a dataset, we compute the partial distance covariance-based features for each
+    variable, which are the partial distance covariance between that variable with X and Y,
+    using each as the conditioning variable.
+    """
+    variables = dataset.columns.drop(["X", "Y"])
+
+    df = []
+    for variable in variables:
+        pdcov_v_X_given_Y = partial_distance_covariance(dataset[variable].values, dataset["X"].values, dataset["Y"].values)
+        pdcov_v_Y_given_X = partial_distance_covariance(dataset[variable].values, dataset["Y"].values, dataset["X"].values)
+        pdcov_X_Y_given_v = partial_distance_covariance(dataset["X"].values, dataset["Y"].values, dataset[variable].values)
+
+        df.append({
+            "variable": variable,
+            "pdcov(v,X|Y)": pdcov_v_X_given_Y,
+            "pdcov(v,Y|X)": pdcov_v_Y_given_X,
+            "pdcov(X,Y|v)": pdcov_X_Y_given_v,
+        })
+
+    df = pd.DataFrame(df)
+    df["dataset"] = dataset.name
+
+    # Reorder columns:
+    df = df[["dataset", "variable", "pdcov(v,X|Y)", "pdcov(v,Y|X)", "pdcov(X,Y|v)"]]
+
+    return df
+
+"""条件协方差"""
+def coditional_covariance(dataset):
+    variables = dataset.columns.drop(["X", "Y"]).tolist()
+    # Cov(X,Y)
+    cov_xy = dataset["X"].cov(dataset["Y"])
+
+    df = []
+    for variable in variables:
+        # Cov(X,Y|v)
+        v = dataset[variable]
+        X = dataset['X']
+        Y = dataset['Y']
+        
+        # 回归 X 对 v，并获取残差
+        X_model = sm.OLS(X, sm.add_constant(v)).fit()
+        X_residual = X_model.resid
+        
+        # 回归 Y 对 v，并获取残差
+        Y_model = sm.OLS(Y, sm.add_constant(v)).fit()
+        Y_residual = Y_model.resid
+        
+        # 计算残差之间的协方差，即条件协方差
+        cov_conditional = X_residual.cov(Y_residual)
+
+        df.append({
+            "variable": variable,
+            "Conditional_Cov(X,Y|v)": cov_conditional,
+        })
+
+    df = pd.DataFrame(df)
+    df["dataset"] = dataset.name
+
+    df["Cov(X,Y)"] = cov_xy
+
+    # Reorder columns:
+    df = df[["dataset"] + [colname for colname in df.columns if colname != "dataset"]]
+
+    return df
+
+"""距离协方差"""
+def partial_distance_covariance_test_collider(dataset):
+    variables = dataset.columns.drop(["X", "Y"]).tolist()
+    # Cov(X,Y)
+    X = dataset['X'].values.reshape(-1, 1)
+    Y = dataset['Y'].values.reshape(-1, 1)
+    cov_xy = dcor.distance_covariance(X, Y) 
+
+    df = []
+    for variable in variables:
+        # Cov(X,Y|v)
+        v = dataset[variable].values.reshape(-1, 1)
+
+        cov_xy_partial = dcor.partial_distance_covariance(X, Y, v) 
+        
+        df.append({
+            "variable": variable,
+            "Partial_Distance_Cov(X,Y|v)": cov_xy_partial,
+        })
+
+    df = pd.DataFrame(df)
+    df["dataset"] = dataset.name
+
+    df["Distance_Cov(X,Y)"] = cov_xy
+
+    # Reorder columns:
+    df = df[["dataset"] + [colname for colname in df.columns if colname != "dataset"]]
+
+    return df
+
+def segmented_ridge_regression_feature(dataset):
+    variables = dataset.columns.drop(["X", "Y"]).tolist()
+    param_grid = {'alpha': np.logspace(-6, 6, 13)}
+    
+    # 使用X的中位数作为分段点
+    x_median = dataset["X"].median()
+    
+    # 将数据集分为两段
+    dataset_low = dataset[dataset["X"] <= x_median]
+    dataset_high = dataset[dataset["X"] > x_median]
+    
+    def fit_ridge_model(data, features, target):
+        if data.empty:
+            return {feature: 0 for feature in features}
+        
+        d = Squared_term(data[features], features)
+        features = d.columns.tolist()
+        scaler = StandardScaler()
+        d_scaled = scaler.fit_transform(d)
+        model = GridSearchCV(Ridge(random_state=42), param_grid, cv=5)
+        model.fit(d_scaled, data[target])
+        coefs = model.best_estimator_.coef_.tolist()
+        return {name: coef for name, coef in zip(features, coefs)}
+    
+    # 对两段数据分别拟合模型
+    model1_features = ["X"] + variables
+    model1_dict_low = fit_ridge_model(dataset_low, model1_features, "Y")
+    model1_dict_high = fit_ridge_model(dataset_high, model1_features, "Y")
+    
+    model2_features = variables
+    model2_dict_low = fit_ridge_model(dataset_low, model2_features, "X")
+    model2_dict_high = fit_ridge_model(dataset_high, model2_features, "X")
+    
+    df = []
+    for variable in variables:
+        df.append({
+            "variable": variable,
+            "v~Y_ridge_coefficient_low": model1_dict_low.get(variable, np.nan),
+            "v~Y_ridge_coefficient_high": model1_dict_high.get(variable, np.nan),
+            "v~X_ridge_coefficient_low": model2_dict_low.get(variable, np.nan),
+            "v~X_ridge_coefficient_high": model2_dict_high.get(variable, np.nan),
+        })
+        
+    df = pd.DataFrame(df)
+    df["dataset"] = dataset.name
+    
+    df["X~Y_ridge_coefficient_low"] = model1_dict_low.get("X", np.nan)
+    df["X~Y_ridge_coefficient_high"] = model1_dict_high.get("X", np.nan)
+    
+    # Reorder columns:
+    df = df[["dataset"] + [colname for colname in df.columns if colname != "dataset"]]
+
+    return df
+
+
+"""反三角函数"""
+def Arcsin_Arccos_term(df, columns):
+    for col in columns:
+        # 将数据限制在[-1, 1]范围内
+        df[col] = np.clip(df[col], -1, 1)
+        df[f"{col}_arcsin_term"] = np.arcsin(df[col])
+        df[f"{col}_arccos_term"] = np.arccos(df[col])
+    return df
+
+def linear_regression_arcsincos_feature(dataset):
+    variables = dataset.columns.drop(["X", "Y"]).tolist()
+    scaler = StandardScaler()
+    # model1: 更新特征
+    model1_features = ["X"] + variables
+    d1 = Arcsin_Arccos_term(dataset[model1_features], variables)  # 添加反三角函数
+    model1_features = d1.columns.tolist()
+    d1_scaled = scaler.fit_transform(d1)
+    model1 = LinearRegression().fit(d1_scaled, dataset[["Y"]])
+    model1_coefs = model1.coef_[0].tolist()
+    model1_dict = {name: coef for name, coef in zip(model1_features, model1_coefs)}
+    
+    # model2: 更新特征
+    model2_features = variables
+    d2 = Arcsin_Arccos_term(dataset[model2_features], model2_features)  # 添加反三角函数
+    model2_features = d2.columns.tolist()
+    d2_scaled = scaler.fit_transform(d2)
+    model2 = LinearRegression().fit(d2_scaled, dataset[["X"]])
+    model2_coefs = model2.coef_[0].tolist()
+    model2_dict = {name: coef for name, coef in zip(model2_features, model2_coefs)}
+    
+    df = []
+    for i, variable in enumerate(variables):
+        # model3: 更新特征
+        model3_features = ["X", "Y"] + dataset.columns.drop(["X", "Y", variable]).tolist()
+        d3 = Arcsin_Arccos_term(dataset[model3_features], model3_features)  # 添加反三角函数
+        model3_features = d3.columns.tolist()
+        d3_scaled = scaler.fit_transform(d3)
+        model3 = LinearRegression().fit(d3_scaled, dataset[[variable]])
+        model3_coefs = model3.coef_[0].tolist()
+        model3_dict = {name: coef for name, coef in zip(model3_features, model3_coefs)}
+
+        df.append({
+            "variable": variable,
+            "v_arcsin~Y_coefficient": model1_dict[f"{variable}_arcsin_term"],  # 新增
+            "v_arccos~Y_coefficient": model1_dict[f"{variable}_arccos_term"],  # 新增
+            "v_arcsin~X_coefficient": model2_dict[f"{variable}_arcsin_term"],  # 新增
+            "v_arccos~X_coefficient": model2_dict[f"{variable}_arccos_term"],  # 新增
+            "X_arcsin~v_coefficient": model3_dict["X_arcsin_term"],  # 新增
+            "X_arccos~v_coefficient": model3_dict["X_arccos_term"],  # 新增
+            "Y_arcsin~v_coefficient": model3_dict["Y_arcsin_term"],  # 新增
+            "Y_arccos~v_coefficient": model3_dict["Y_arccos_term"],  # 新增
+        })
+        
+    df = pd.DataFrame(df)
+    df["dataset"] = dataset.name
+    
+    df["X~Y_coefficient"] = model1_dict["X"]
+    
+    # Reorder columns:
+    df = df[["dataset"] + [colname for colname in df.columns if colname != "dataset"]]
+
+    return df
