@@ -1756,3 +1756,312 @@ def partial_distance_covariance_test_collider(dataset):
     df = df[["dataset"] + [colname for colname in df.columns if colname != "dataset"]]
 
     return df
+
+def segmented_ridge_regression_feature(dataset):
+    variables = dataset.columns.drop(["X", "Y"]).tolist()
+    param_grid = {'alpha': np.logspace(-6, 6, 13)}
+    
+    # 使用X的中位数作为分段点
+    x_median = dataset["X"].median()
+    
+    # 将数据集分为两段
+    dataset_low = dataset[dataset["X"] <= x_median]
+    dataset_high = dataset[dataset["X"] > x_median]
+    
+    def fit_ridge_model(data, features, target):
+        if data.empty:
+            return {feature: 0 for feature in features}
+        
+        d = Squared_term(data[features], features)
+        features = d.columns.tolist()
+        scaler = StandardScaler()
+        d_scaled = scaler.fit_transform(d)
+        model = GridSearchCV(Ridge(random_state=42), param_grid, cv=5)
+        model.fit(d_scaled, data[target])
+        coefs = model.best_estimator_.coef_.tolist()
+        return {name: coef for name, coef in zip(features, coefs)}
+    
+    # 对两段数据分别拟合模型
+    model1_features = ["X"] + variables
+    model1_dict_low = fit_ridge_model(dataset_low, model1_features, "Y")
+    model1_dict_high = fit_ridge_model(dataset_high, model1_features, "Y")
+    
+    model2_features = variables
+    model2_dict_low = fit_ridge_model(dataset_low, model2_features, "X")
+    model2_dict_high = fit_ridge_model(dataset_high, model2_features, "X")
+    
+    df = []
+    for variable in variables:
+        df.append({
+            "variable": variable,
+            "v~Y_ridge_coefficient_low": model1_dict_low.get(variable, np.nan),
+            "v~Y_ridge_coefficient_high": model1_dict_high.get(variable, np.nan),
+            "v~X_ridge_coefficient_low": model2_dict_low.get(variable, np.nan),
+            "v~X_ridge_coefficient_high": model2_dict_high.get(variable, np.nan),
+        })
+        
+    df = pd.DataFrame(df)
+    df["dataset"] = dataset.name
+    
+    df["X~Y_ridge_coefficient_low"] = model1_dict_low.get("X", np.nan)
+    df["X~Y_ridge_coefficient_high"] = model1_dict_high.get("X", np.nan)
+    
+    # Reorder columns:
+    df = df[["dataset"] + [colname for colname in df.columns if colname != "dataset"]]
+
+    return df
+
+
+"""反三角函数"""
+def Arcsin_Arccos_term(df, columns):
+    for col in columns:
+        # 将数据限制在[-1, 1]范围内
+        df[col] = np.clip(df[col], -1, 1)
+        df[f"{col}_arcsin_term"] = np.arcsin(df[col])
+        df[f"{col}_arccos_term"] = np.arccos(df[col])
+    return df
+
+def linear_regression_arcsincos_feature(dataset):
+    variables = dataset.columns.drop(["X", "Y"]).tolist()
+    scaler = StandardScaler()
+    # model1: 更新特征
+    model1_features = ["X"] + variables
+    d1 = Arcsin_Arccos_term(dataset[model1_features], variables)  # 添加反三角函数
+    model1_features = d1.columns.tolist()
+    d1_scaled = scaler.fit_transform(d1)
+    model1 = LinearRegression().fit(d1_scaled, dataset[["Y"]])
+    model1_coefs = model1.coef_[0].tolist()
+    model1_dict = {name: coef for name, coef in zip(model1_features, model1_coefs)}
+    
+    # model2: 更新特征
+    model2_features = variables
+    d2 = Arcsin_Arccos_term(dataset[model2_features], model2_features)  # 添加反三角函数
+    model2_features = d2.columns.tolist()
+    d2_scaled = scaler.fit_transform(d2)
+    model2 = LinearRegression().fit(d2_scaled, dataset[["X"]])
+    model2_coefs = model2.coef_[0].tolist()
+    model2_dict = {name: coef for name, coef in zip(model2_features, model2_coefs)}
+    
+    df = []
+    for i, variable in enumerate(variables):
+        # model3: 更新特征
+        model3_features = ["X", "Y"] + dataset.columns.drop(["X", "Y", variable]).tolist()
+        d3 = Arcsin_Arccos_term(dataset[model3_features], model3_features)  # 添加反三角函数
+        model3_features = d3.columns.tolist()
+        d3_scaled = scaler.fit_transform(d3)
+        model3 = LinearRegression().fit(d3_scaled, dataset[[variable]])
+        model3_coefs = model3.coef_[0].tolist()
+        model3_dict = {name: coef for name, coef in zip(model3_features, model3_coefs)}
+
+        df.append({
+            "variable": variable,
+            "v_arcsin~Y_coefficient": model1_dict[f"{variable}_arcsin_term"],  # 新增
+            "v_arccos~Y_coefficient": model1_dict[f"{variable}_arccos_term"],  # 新增
+            "v_arcsin~X_coefficient": model2_dict[f"{variable}_arcsin_term"],  # 新增
+            "v_arccos~X_coefficient": model2_dict[f"{variable}_arccos_term"],  # 新增
+            "X_arcsin~v_coefficient": model3_dict["X_arcsin_term"],  # 新增
+            "X_arccos~v_coefficient": model3_dict["X_arccos_term"],  # 新增
+            "Y_arcsin~v_coefficient": model3_dict["Y_arcsin_term"],  # 新增
+            "Y_arccos~v_coefficient": model3_dict["Y_arccos_term"],  # 新增
+        })
+        
+    df = pd.DataFrame(df)
+    df["dataset"] = dataset.name
+    
+    df["X~Y_coefficient"] = model1_dict["X"]
+    
+    # Reorder columns:
+    df = df[["dataset"] + [colname for colname in df.columns if colname != "dataset"]]
+
+    return df
+def piecewise_breakpoint_linear_regression_estimate(dataset, X_col, y_col):
+    X = dataset[X_col].values.reshape(-1, 1)
+    y = dataset[y_col].values
+
+    def fit_piecewise(breakpoint):
+        X_piecewise = np.column_stack((X, np.maximum(X - breakpoint, 0)))
+        model = LinearRegression().fit(X_piecewise, y)
+        return np.sum((y - model.predict(X_piecewise))**2)
+
+    result = minimize_scalar(fit_piecewise, bounds=(X.min(), X.max()), method='bounded')
+    optimal_breakpoint = result.x
+
+    X_piecewise = np.column_stack((X, np.maximum(X - optimal_breakpoint, 0)))
+    model = LinearRegression().fit(X_piecewise, y)
+    return model.coef_, optimal_breakpoint
+
+
+def piecewise_breakpoint_linear_regression_feature(dataset):
+    variables = dataset.columns.drop(["X", "Y"])
+
+    df = []
+    for variable in variables:
+        v2X_coef, v2X_breakpoint = piecewise_breakpoint_linear_regression_estimate(dataset, variable, "X")
+        v2Y_coef, v2Y_breakpoint = piecewise_breakpoint_linear_regression_estimate(dataset, variable, "Y")
+        X2v_coef, X2v_breakpoint = piecewise_breakpoint_linear_regression_estimate(dataset, "X", variable)
+        Y2v_coef, Y2v_breakpoint = piecewise_breakpoint_linear_regression_estimate(dataset, "Y", variable)
+        
+
+        df.append({
+            "variable": variable,
+            "v~X_piecewise_breakpoint_coef1": v2X_coef[0],
+            "v~X_piecewise_breakpoint_coef2": v2X_coef[1],
+            "v~Y_piecewise_breakpoint_coef1": v2Y_coef[0],
+            "v~Y_piecewise_breakpoint_coef2": v2Y_coef[1],
+            "X~v_piecewise_breakpoint_coef1": X2v_coef[0],
+            "X~v_piecewise_breakpoint_coef2": X2v_coef[1],
+            "Y~v_piecewise_breakpoint_coef1": Y2v_coef[0],
+            "Y~v_piecewise_breakpoint_coef2": Y2v_coef[1],
+
+        })
+
+    df = pd.DataFrame(df)
+    df["dataset"] = dataset.name
+
+    # Reorder columns:
+    df = df[["dataset"] + [colname for colname in df.columns if colname != "dataset"]]
+
+    return df
+
+
+def piecewise_quadratic_regression_feature_improved_eight_segments(dataset):
+    """
+    Compute piecewise quadratic regression features for each variable with X and Y,
+    using seven breakpoints to create eight segments, and only using quadratic terms.
+    """
+    variables = dataset.columns.drop(["X", "Y"]).tolist()
+
+    df = []
+    for variable in variables:
+        # Prepare data
+        v = dataset[variable].values.reshape(-1, 1)
+        X = dataset["X"].values.reshape(-1, 1)
+        Y = dataset["Y"].values.reshape(-1, 1)
+
+        # Create piecewise quadratic features with seven breakpoints
+        v_breakpoints = np.percentile(v, [12.5, 25, 37.5, 50, 62.5, 75, 87.5])
+        X_breakpoints = np.percentile(X, [12.5, 25, 37.5, 50, 62.5, 75, 87.5])
+        Y_breakpoints = np.percentile(Y, [12.5, 25, 37.5, 50, 62.5, 75, 87.5])
+
+        v_piecewise = np.column_stack((
+            v**2,
+            np.maximum(v - v_breakpoints[0], 0)**2,
+            np.maximum(v - v_breakpoints[1], 0)**2,
+            np.maximum(v - v_breakpoints[2], 0)**2,
+            np.maximum(v - v_breakpoints[3], 0)**2,
+            np.maximum(v - v_breakpoints[4], 0)**2,
+            np.maximum(v - v_breakpoints[5], 0)**2,
+            np.maximum(v - v_breakpoints[6], 0)**2
+        ))
+        X_piecewise = np.column_stack((
+            X**2,
+            np.maximum(X - X_breakpoints[0], 0)**2,
+            np.maximum(X - X_breakpoints[1], 0)**2,
+            np.maximum(X - X_breakpoints[2], 0)**2,
+            np.maximum(X - X_breakpoints[3], 0)**2,
+            np.maximum(X - X_breakpoints[4], 0)**2,
+            np.maximum(X - X_breakpoints[5], 0)**2,
+            np.maximum(X - X_breakpoints[6], 0)**2
+        ))
+        Y_piecewise = np.column_stack((
+            Y**2,
+            np.maximum(Y - Y_breakpoints[0], 0)**2,
+            np.maximum(Y - Y_breakpoints[1], 0)**2,
+            np.maximum(Y - Y_breakpoints[2], 0)**2,
+            np.maximum(Y - Y_breakpoints[3], 0)**2,
+            np.maximum(Y - Y_breakpoints[4], 0)**2,
+            np.maximum(Y - Y_breakpoints[5], 0)**2,
+            np.maximum(Y - Y_breakpoints[6], 0)**2
+        ))
+
+        # Fit models
+        model_v_X = LinearRegression(fit_intercept=False).fit(v_piecewise, X)
+        model_v_Y = LinearRegression(fit_intercept=False).fit(v_piecewise, Y)
+        model_X_v = LinearRegression(fit_intercept=False).fit(X_piecewise, v)
+        model_Y_v = LinearRegression(fit_intercept=False).fit(Y_piecewise, v)
+
+        # Store coefficients
+        df.append({
+            "variable": variable,
+            **{f"v~X_quadratic_8_coef{i+1}": model_v_X.coef_[0][i] for i in range(8)},
+            **{f"v~Y_quadratic_8_coef{i+1}": model_v_Y.coef_[0][i] for i in range(8)},
+            **{f"X~v_quadratic_8_coef{i+1}": model_X_v.coef_[0][i] for i in range(8)},
+            **{f"Y~v_quadratic_8_coef{i+1}": model_Y_v.coef_[0][i] for i in range(8)},
+        })
+
+    df = pd.DataFrame(df)
+    df["dataset"] = dataset.name
+
+    # Reorder columns
+    df = df[["dataset"] + [colname for colname in df.columns if colname != "dataset"]]
+
+    return df
+
+
+
+
+def piecewise_quadratic_regression_feature_improved(dataset):
+    """
+    Compute piecewise quadratic regression features for each variable with X and Y,
+    using three breakpoints to create four segments, and only using quadratic terms.
+    """
+    variables = dataset.columns.drop(["X", "Y"]).tolist()
+
+    df = []
+    for variable in variables:
+        # Prepare data
+        v = dataset[variable].values.reshape(-1, 1)
+        X = dataset["X"].values.reshape(-1, 1)
+        Y = dataset["Y"].values.reshape(-1, 1)
+
+        # Create piecewise quadratic features with three breakpoints
+        v_breakpoints = np.percentile(v, [25, 50, 75])
+        X_breakpoints = np.percentile(X, [25, 50, 75])
+        Y_breakpoints = np.percentile(Y, [25, 50, 75])
+
+        def create_piecewise(data, breakpoints):
+            segment1 = np.where(data <= breakpoints[0], data, 0)**2
+            segment2 = np.where((data > breakpoints[0]) & (data <= breakpoints[1]), data - breakpoints[0], 0)**2
+            segment3 = np.where((data > breakpoints[1]) & (data <= breakpoints[2]), data - breakpoints[1], 0)**2
+            segment4 = np.where(data > breakpoints[2], data - breakpoints[2], 0)**2
+            return np.column_stack((segment1, segment2, segment3, segment4))
+
+        v_piecewise = create_piecewise(v, v_breakpoints)
+        X_piecewise = create_piecewise(X, X_breakpoints)
+        Y_piecewise = create_piecewise(Y, Y_breakpoints)
+
+        # Fit models
+        model_v_X = LinearRegression(fit_intercept=False).fit(v_piecewise, X)
+        model_v_Y = LinearRegression(fit_intercept=False).fit(v_piecewise, Y)
+        model_X_v = LinearRegression(fit_intercept=False).fit(X_piecewise, v)
+        model_Y_v = LinearRegression(fit_intercept=False).fit(Y_piecewise, v)
+
+        # Store coefficients
+        df.append({
+            "variable": variable,
+            "v~X_quadratic_coef1": model_v_X.coef_[0][0],
+            "v~X_quadratic_coef2": model_v_X.coef_[0][1],
+            "v~X_quadratic_coef3": model_v_X.coef_[0][2],
+            "v~X_quadratic_coef4": model_v_X.coef_[0][3],
+            "v~Y_quadratic_coef1": model_v_Y.coef_[0][0],
+            "v~Y_quadratic_coef2": model_v_Y.coef_[0][1],
+            "v~Y_quadratic_coef3": model_v_Y.coef_[0][2],
+            "v~Y_quadratic_coef4": model_v_Y.coef_[0][3],
+            "X~v_quadratic_coef1": model_X_v.coef_[0][0],
+            "X~v_quadratic_coef2": model_X_v.coef_[0][1],
+            "X~v_quadratic_coef3": model_X_v.coef_[0][2],
+            "X~v_quadratic_coef4": model_X_v.coef_[0][3],
+            "Y~v_quadratic_coef1": model_Y_v.coef_[0][0],
+            "Y~v_quadratic_coef2": model_Y_v.coef_[0][1],
+            "Y~v_quadratic_coef3": model_Y_v.coef_[0][2],
+            "Y~v_quadratic_coef4": model_Y_v.coef_[0][3],
+        })
+
+    df = pd.DataFrame(df)
+    df["dataset"] = dataset.name
+
+    # Reorder columns
+    df = df[["dataset"] + [colname for colname in df.columns if colname != "dataset"]]
+
+    return df
+
