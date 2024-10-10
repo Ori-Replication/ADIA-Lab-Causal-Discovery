@@ -2065,3 +2065,162 @@ def piecewise_quadratic_regression_feature_improved(dataset):
 
     return df
 
+"""基于Xgboost的条件独立检验""" 
+def conditional_independence_tests(dataset):  # 太慢了，得三个小时
+    """
+    A mixed-data residualization based conditional independence test[1].
+    Uses XGBoost estimator to compute LS residuals[2], and then does an association test (Pillai’s Trace) on the residuals.
+    """
+    variables = dataset.columns.drop(["X", "Y"]).tolist()
+
+    df = []
+    for variable in variables:
+        # v-X
+        coef1, p_value1 = CITests.ci_pillai(X=variable, Y="X", Z=dataset.columns.drop(["X", variable]).tolist(), data=dataset, boolean=False)
+        # v-Y
+        coef2, p_value2 = CITests.ci_pillai(X=variable, Y="Y", Z=dataset.columns.drop(["Y", variable]).tolist(), data=dataset, boolean=False)
+        # X-v
+        coef3, p_value3 = CITests.ci_pillai(X="X", Y=variable, Z=dataset.columns.drop(["X", variable]).tolist(), data=dataset, boolean=False)
+        # Y-v
+        coef4, p_value4 = CITests.ci_pillai(X="Y", Y=variable, Z=dataset.columns.drop(["Y", variable]).tolist(), data=dataset, boolean=False)
+        df.append({
+            "variable": variable,
+            "v~X_ci_pillai_coef": coef1,
+            "v~X_ci_pillai_p_value": p_value1,
+            "v~Y_ci_pillai_coef": coef2,
+            "v~Y_ci_pillai_p_value": p_value2,
+            "X~v_ci_pillai_coef": coef3,
+            "X~v_ci_pillai_p_value": p_value3,
+            "Y~v_ci_pillai_coef": coef4,
+            "Y~v_ci_pillai_p_value": p_value4
+        })
+    
+    df = pd.DataFrame(df)
+    df["dataset"] = dataset.name
+    
+    # Reorder columns:
+    df = df[["dataset"] + [colname for colname in df.columns if colname != "dataset"]]
+
+    return df
+
+def linear_regression_feature_part1(dataset):
+    variables = dataset.columns.drop(["X", "Y"]).tolist()
+    scaler = StandardScaler()
+
+    # model1: Fit X, v, v_i*v_j, v_i*X ~ Y
+    model1_features = ["X"] + variables
+    d1 = dataset[model1_features].copy()
+    d1 = Interaction_term(d1, model1_features)
+    model1_features = d1.columns.tolist()
+    d1_scaled = scaler.fit_transform(d1)
+    model1 = LinearRegression().fit(d1_scaled, dataset[["Y"]])
+    model1_coefs = model1.coef_[0].tolist()
+    model1_dict = {name: coef for name, coef in zip(model1_features, model1_coefs)}
+    
+    # model2: Fit v, v_i*v_j ~ X
+    model2_features = variables
+    d2 = dataset[model2_features].copy()
+    d2 = Interaction_term(d2, model2_features)
+    model2_features = d2.columns.tolist()
+    d2_scaled = scaler.fit_transform(d2)
+    model2 = LinearRegression().fit(d2_scaled, dataset[["X"]])
+    model2_coefs = model2.coef_[0].tolist()
+    model2_dict = {name: coef for name, coef in zip(model2_features, model2_coefs)}
+    
+    df = []
+    for i, variable in enumerate(variables):
+        # model3: Fit other v, X, Y ~ v
+        model3_features = ["X", "Y"] + dataset.columns.drop(["X", "Y", variable]).tolist()
+        d3 = dataset[model3_features].copy()
+        d3 = Interaction_term(d3, model3_features)
+        model3_features = d3.columns.tolist()
+        d3_scaled = scaler.fit_transform(d3)
+        model3 = LinearRegression().fit(d3_scaled, dataset[[variable]])
+        model3_coefs = model3.coef_[0].tolist()
+        model3_dict = {name: coef for name, coef in zip(model3_features, model3_coefs)}
+
+        df.append({
+            "variable": variable,
+            "v~Y_1_coefficient": model1_dict[variable],     # <--- model1
+            "v*X~Y_1_coefficient": model1_dict[f"X_{variable}"],
+            "v~X_1_coefficient": model2_dict[variable],     # <--- model2
+            "X~v_1_coefficient": model3_dict["X"],          # <--- model3
+            "Y~v_1_coefficient": model3_dict["Y"],
+            "X*Y~v_1_coefficient": model3_dict["X_Y"]
+        })
+        
+    df = pd.DataFrame(df)
+    df["dataset"] = dataset.name
+    
+    df["X~Y_1_coefficient"] = model1_dict["X"]
+    
+    # Reorder columns:
+    df = df[["dataset"] + [colname for colname in df.columns if colname != "dataset"]]
+
+    return df
+
+def linear_regression_feature_part2(dataset):
+    variables = dataset.columns.drop(["X", "Y"]).tolist()
+    scaler = StandardScaler()
+
+    # model1: Fit X, v, v^2, cos(v), sin(v) ~ Y
+    model1_features = ["X"] + variables
+    d1 = Squared_term(dataset[model1_features], model1_features)
+    d1 = Cos_Sin_term(d1, variables)
+    model1_features = d1.columns.tolist()
+    d1_scaled = scaler.fit_transform(d1)
+    model1 = LinearRegression().fit(d1_scaled, dataset[["Y"]])
+    model1_coefs = model1.coef_[0].tolist()
+    model1_dict = {name: coef for name, coef in zip(model1_features, model1_coefs)}
+    
+    # model2: Fit v, v^2, cos(v), sin(v) ~ X
+    model2_features = variables
+    d2 = Squared_term(dataset[model2_features], model2_features)
+    d2 = Cos_Sin_term(d2, variables)
+    model2_features = d2.columns.tolist()
+    d2_scaled = scaler.fit_transform(d2)
+    model2 = LinearRegression().fit(d2_scaled, dataset[["X"]])
+    model2_coefs = model2.coef_[0].tolist()
+    model2_dict = {name: coef for name, coef in zip(model2_features, model2_coefs)}
+    
+    df = []
+    for i, variable in enumerate(variables):
+        # model3: Fit other v, X, Y ~ v
+        model3_features = ["X", "Y"] + dataset.columns.drop(["X", "Y", variable]).tolist()
+        d3 = Squared_term(dataset[model3_features], model3_features)
+        d3 = Cos_Sin_term(d3, model3_features)
+        model3_features = d3.columns.tolist()
+        d3_scaled = scaler.fit_transform(d3)
+        model3 = LinearRegression().fit(d3_scaled, dataset[[variable]])
+        model3_coefs = model3.coef_[0].tolist()
+        model3_dict = {name: coef for name, coef in zip(model3_features, model3_coefs)}
+
+        df.append({
+            "variable": variable,
+            "v~Y_2_coefficient": model1_dict[variable],     # <--- model1
+            "v_squared~Y_2_coefficient": model1_dict[f"{variable}_squared_term"],
+            "v_cos~Y_2_coefficient": model1_dict[f"{variable}_cos_term"],
+            "v_sin~Y_2_coefficient": model1_dict[f"{variable}_sin_term"],
+            "v~X_2_coefficient": model2_dict[variable],     # <--- model2
+            "v_squared~X_2_coefficient": model2_dict[f"{variable}_squared_term"],
+            "v_cos~X_2_coefficient": model2_dict[f"{variable}_cos_term"], 
+            "v_sin~X_2_coefficient": model2_dict[f"{variable}_sin_term"],  
+            "X~v_2_coefficient": model3_dict["X"],          # <--- model3
+            "X_squared~v_2_coefficient": model3_dict["X_squared_term"],
+            "X_cos~v_2_coefficient": model3_dict["X_cos_term"],
+            "X_sin~v_2_coefficient": model3_dict["X_sin_term"],
+            "Y~v_2_coefficient": model3_dict["Y"],
+            "Y_squared~v_2_coefficient": model3_dict["Y_squared_term"],
+            "Y_cos~v_2_coefficient": model3_dict["Y_cos_term"],
+            "Y_sin~v_2_coefficient": model3_dict["Y_sin_term"],
+        })
+        
+    df = pd.DataFrame(df)
+    df["dataset"] = dataset.name
+    
+    df["X~Y_2_coefficient"] = model1_dict["X"]
+    
+    # Reorder columns:
+    df = df[["dataset"] + [colname for colname in df.columns if colname != "dataset"]]
+
+    return df
