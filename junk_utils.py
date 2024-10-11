@@ -2224,3 +2224,244 @@ def linear_regression_feature_part2(dataset):
     df = df[["dataset"] + [colname for colname in df.columns if colname != "dataset"]]
 
     return df
+
+
+def piecewise_cubic_regression_4_feature(dataset):
+    """
+    Compute cubic regression features for each variable with X and Y.
+    """
+    variables = dataset.columns.drop(["X", "Y"]).tolist()
+
+    df = []
+    for variable in variables:
+        # Prepare data
+        v = dataset[variable].values.reshape(-1, 1)
+        X = dataset["X"].values.reshape(-1, 1)
+        Y = dataset["Y"].values.reshape(-1, 1)
+
+        # Create piecewise quadratic features with three breakpoints
+        v_breakpoints = np.percentile(v, [50])
+        X_breakpoints = np.percentile(X, [50])
+        Y_breakpoints = np.percentile(Y, [50])
+
+        v_piecewise = np.column_stack((
+            v**3,
+            np.maximum(v - v_breakpoints[0], 0)**3,
+            np.maximum(v - v_breakpoints[1], 0)**3,
+            np.maximum(v - v_breakpoints[2], 0)**3
+        ))
+        X_piecewise = np.column_stack((
+            X**3,
+            np.maximum(X - X_breakpoints[0], 0)**3,
+            np.maximum(X - X_breakpoints[1], 0)**3,
+            np.maximum(X - X_breakpoints[2], 0)**3
+        ))
+        Y_piecewise = np.column_stack((
+            Y**3,
+            np.maximum(Y - Y_breakpoints[0], 0)**3,
+            np.maximum(Y - Y_breakpoints[1], 0)**3,
+            np.maximum(Y - Y_breakpoints[2], 0)**3
+        ))
+
+        # Fit models
+        model_v_X = LinearRegression(fit_intercept=False).fit(v_piecewise, X)
+        model_v_Y = LinearRegression(fit_intercept=False).fit(v_piecewise, Y)
+        model_X_v = LinearRegression(fit_intercept=False).fit(X_piecewise, v)
+        model_Y_v = LinearRegression(fit_intercept=False).fit(Y_piecewise, v)
+
+        # Store coefficients
+        df.append({
+            "variable": variable,
+            "v~X_cubic_coef1": model_v_X.coef_[0][0],
+            "v~X_cubic_coef2": model_v_X.coef_[0][1],
+            "v~X_cubic_coef3": model_v_X.coef_[0][2],
+            "v~X_cubic_coef4": model_v_X.coef_[0][3],
+            "v~Y_cubic_coef1": model_v_Y.coef_[0][0],
+            "v~Y_cubic_coef2": model_v_Y.coef_[0][1],
+            "v~Y_cubic_coef3": model_v_Y.coef_[0][2],
+            "v~Y_cubic_coef4": model_v_Y.coef_[0][3],
+            "X~v_cubic_coef1": model_X_v.coef_[0][0],
+            "X~v_cubic_coef2": model_X_v.coef_[0][1],
+            "X~v_cubic_coef3": model_X_v.coef_[0][2],
+            "X~v_cubic_coef4": model_X_v.coef_[0][3],
+            "Y~v_cubic_coef1": model_Y_v.coef_[0][0],
+            "Y~v_cubic_coef2": model_Y_v.coef_[0][1],
+            "Y~v_cubic_coef3": model_Y_v.coef_[0][2],
+            "Y~v_cubic_coef4": model_Y_v.coef_[0][3],
+        })
+
+    df = pd.DataFrame(df)
+    df["dataset"] = dataset.name
+
+    # Reorder columns
+    df = df[["dataset"] + [colname for colname in df.columns if colname != "dataset"]]
+
+    return df
+
+
+def piecewise_quadratic_regression_4_feature_new(dataset):
+    """
+    Compute piecewise quadratic regression features for each variable with X and Y,
+    using three breakpoints at the quartiles.
+    """
+    variables = dataset.columns.drop(["X", "Y"]).tolist()
+
+    df = []
+    for variable in variables:
+        # Prepare data
+        v = dataset[variable].values.reshape(-1, 1)
+        X = dataset["X"].values.reshape(-1, 1)
+        Y = dataset["Y"].values.reshape(-1, 1)
+
+        # Create piecewise quadratic features using quartiles
+        v_breakpoints = np.percentile(v, [25, 50, 75])
+        X_breakpoints = np.percentile(X, [25, 50, 75])
+        Y_breakpoints = np.percentile(Y, [25, 50, 75])
+
+        v_piecewise = np.column_stack((
+            v, v**2,
+            np.maximum(v - v_breakpoints[0], 0), np.maximum(v - v_breakpoints[0], 0)**2,
+            np.maximum(v - v_breakpoints[1], 0), np.maximum(v - v_breakpoints[1], 0)**2,
+            np.maximum(v - v_breakpoints[2], 0), np.maximum(v - v_breakpoints[2], 0)**2
+        ))
+        X_piecewise = np.column_stack((
+            X, X**2,
+            np.maximum(X - X_breakpoints[0], 0), np.maximum(X - X_breakpoints[0], 0)**2,
+            np.maximum(X - X_breakpoints[1], 0), np.maximum(X - X_breakpoints[1], 0)**2,
+            np.maximum(X - X_breakpoints[2], 0), np.maximum(X - X_breakpoints[2], 0)**2
+        ))
+        Y_piecewise = np.column_stack((
+            Y, Y**2,
+            np.maximum(Y - Y_breakpoints[0], 0), np.maximum(Y - Y_breakpoints[0], 0)**2,
+            np.maximum(Y - Y_breakpoints[1], 0), np.maximum(Y - Y_breakpoints[1], 0)**2,
+            np.maximum(Y - Y_breakpoints[2], 0), np.maximum(Y - Y_breakpoints[2], 0)**2
+        ))
+
+        # Fit models
+        model_v_X = LinearRegression().fit(v_piecewise, X)
+        model_v_Y = LinearRegression().fit(v_piecewise, Y)
+        model_X_v = LinearRegression().fit(X_piecewise, v)
+        model_Y_v = LinearRegression().fit(Y_piecewise, v)
+
+        # Store coefficients
+        df.append({
+            "variable": variable,
+            **{f"v~X_piecewise_new_coef{i+1}": model_v_X.coef_[0][i] for i in range(8)},
+            **{f"v~Y_piecewise_new_coef{i+1}": model_v_Y.coef_[0][i] for i in range(8)},
+            **{f"X~v_piecewise_new_coef{i+1}": model_X_v.coef_[0][i] for i in range(8)},
+            **{f"Y~v_piecewise_new_coef{i+1}": model_Y_v.coef_[0][i] for i in range(8)},
+        })
+
+    df = pd.DataFrame(df)
+    df["dataset"] = dataset.name
+
+    # Reorder columns
+    df = df[["dataset"] + [colname for colname in df.columns if colname != "dataset"]]
+
+    return df
+
+
+def segmented_mutual_information(dataset):
+    """
+    Compute segmented mutual information features for each variable with X and Y.
+    The dataset is split into two segments based on the median of X.
+    """
+    variables = dataset.columns.drop(["X", "Y"])
+
+    # 使用X的中位数作为分段点
+    x_median = dataset["X"].median()
+    
+    # 将数据集分为两段
+    dataset_low = dataset[dataset["X"] <= x_median]
+    dataset_high = dataset[dataset["X"] > x_median]
+
+    df = []
+    for variable in variables:
+        # 初始化结果字典
+        result = {
+            "variable": variable,
+            "MI(v,X)_low": np.nan,
+            "MI(v,Y)_low": np.nan,
+            "MI(v,X)_high": np.nan,
+            "MI(v,Y)_high": np.nan,
+        }
+        
+        # 计算低X值段的互信息（如果有足够的样本）
+        if len(dataset_low) > 1:
+            result["MI(v,X)_low"] = mutual_info_regression(dataset_low[[variable]], dataset_low["X"], discrete_features=False)[0]
+            result["MI(v,Y)_low"] = mutual_info_regression(dataset_low[[variable]], dataset_low["Y"], discrete_features=False)[0]
+        
+        # 计算高X值段的互信息（如果有足够的样本）
+        if len(dataset_high) > 1:
+            result["MI(v,X)_high"] = mutual_info_regression(dataset_high[[variable]], dataset_high["X"], discrete_features=False)[0]
+            result["MI(v,Y)_high"] = mutual_info_regression(dataset_high[[variable]], dataset_high["Y"], discrete_features=False)[0]
+
+        df.append(result)
+
+    df = pd.DataFrame(df)
+    df["dataset"] = dataset.name
+
+    # 计算X和Y之间的互信息（整体、低X值段和高X值段）
+    df["MI(X,Y)_low"] = mutual_info_regression(dataset_low[["X"]], dataset_low["Y"], discrete_features=False)[0] if len(dataset_low) > 1 else np.nan
+    df["MI(X,Y)_high"] = mutual_info_regression(dataset_high[["X"]], dataset_high["Y"], discrete_features=False)[0] if len(dataset_high) > 1 else np.nan
+
+    # Reorder columns:
+    df = df[["dataset"] + [colname for colname in df.columns if colname != "dataset"]]
+
+    return df
+
+
+
+def conditional_mutual_information_new(dataset):
+    """
+    Calculate conditional mutual information for each variable with X and Y,
+    and additional statistics for other variables.
+    """
+    variables = dataset.columns.drop(["X", "Y"])
+    
+    df = []
+    all_mi_vx_given_y = []
+    all_mi_vy_given_x = []
+    all_mi_xy_given_v = []
+    
+    for variable in variables:
+        # Calculate conditional MI(v, X | Y)
+        mi_vx_given_y = mutual_info_regression(dataset[[variable, "Y"]], dataset["X"], discrete_features=False)[0] - \
+                        mutual_info_regression(dataset[["Y"]], dataset["X"], discrete_features=False)[0]
+        
+        # Calculate conditional MI(v, Y | X)
+        mi_vy_given_x = mutual_info_regression(dataset[[variable, "X"]], dataset["Y"], discrete_features=False)[0] - \
+                        mutual_info_regression(dataset[["X"]], dataset["Y"], discrete_features=False)[0]
+        
+        # Calculate conditional MI(X, Y | v)
+        mi_xy_given_v = mutual_info_regression(dataset[["X", variable]], dataset["Y"], discrete_features=False)[0] - \
+                        mutual_info_regression(dataset[[variable]], dataset["Y"], discrete_features=False)[0]
+        
+        all_mi_vx_given_y.append(mi_vx_given_y)
+        all_mi_vy_given_x.append(mi_vy_given_x)
+        all_mi_xy_given_v.append(mi_xy_given_v)
+        
+        df.append({
+            "variable": variable,
+            "conditional_MI(v,X|Y)": mi_vx_given_y,
+            "conditional_MI(v,Y|X)": mi_vy_given_x,
+            "conditional_MI(X,Y|v)": mi_xy_given_v,
+        })
+    
+    df = pd.DataFrame(df)
+    
+    # Calculate statistics for other variables
+    for mi_type, mi_values in [("conditional_MI(other,X|Y)", all_mi_vx_given_y),
+                               ("conditional_MI(other,Y|X)", all_mi_vy_given_x),
+                               ("conditional_MI(X,Y|other)", all_mi_xy_given_v)]:
+        df[f"max_{mi_type}"] = max(mi_values)
+        df[f"min_{mi_type}"] = min(mi_values)
+        df[f"mean_{mi_type}"] = np.mean(mi_values)
+        df[f"var_{mi_type}"] = np.var(mi_values)
+    
+    df["dataset"] = dataset.name
+    
+    # Reorder columns:
+    df = df[["dataset"] + [colname for colname in df.columns if colname != "dataset"]]
+    
+    return df
