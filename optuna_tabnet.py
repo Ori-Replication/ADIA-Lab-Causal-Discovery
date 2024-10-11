@@ -147,7 +147,6 @@ def train_model(params):
         eval_name=['train', 'valid'],                      # 验证集的名称
         eval_metric=['accuracy', 'balanced_accuracy'],     # 评估指标列表
         max_epochs=2000,            # 最大训练轮数
-        loss_fn=,
         patience=10,                # 早停的耐心轮数
         batch_size=4096,            # 批量大小
         virtual_batch_size=1024,    # 用于 Ghost Batch Normalization 的虚拟批次大小（应能被 batch_size 整除）
