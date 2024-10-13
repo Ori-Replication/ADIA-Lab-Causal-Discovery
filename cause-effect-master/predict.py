@@ -47,7 +47,7 @@ def write_predictions(pred_path, test, predictions):
 
 def main():
     if len(sys.argv) < 4:
-        print "USAGE: python predict.py CEdata_test_pairs.csv CEdata_test_publicinfo.csv CEdata_test_predictions.csv"
+        print( "USAGE: python predict.py CEdata_test_pairs.csv CEdata_test_publicinfo.csv CEdata_test_predictions.csv")
         return -1
     pairs_path = sys.argv[1]
     info_path = sys.argv[2]
@@ -55,16 +55,16 @@ def main():
 
     test = read_data(pairs_path, info_path)
 
-    print "Loading the classifier"
+    print( "Loading the classifier")
     model = load_model("model.pkl")
-    print "model.weights", model.weights
+    print( "model.weights", model.weights)
 
-    print "Extracting features"
+    print( "Extracting features")
     test = model.extract(test)
 
-    print "Making predictions"
+    print( "Making predictions")
     predictions = model.predict(test)
-    print "Writing predictions to file"
+    print( "Writing predictions to file")
     write_predictions(pred_path, test[0::2], predictions[0::2])
 
 if __name__=="__main__":

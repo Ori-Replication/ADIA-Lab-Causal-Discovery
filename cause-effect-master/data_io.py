@@ -106,9 +106,9 @@ def load_model(in_path=None, verbose=True):
         in_path = get_path("model_path")
     m = pickle.load(open(in_path))
     if (verbose):
-        print "Model filename:", in_path
-        print "Model date: %s" % time.ctime(os.path.getmtime(in_path))
-        print "Model type: %s" % type(m)
+        print( "Model filename:", in_path)
+        print( "Model date: %s" % time.ctime(os.path.getmtime(in_path)))
+        print( "Model type: %s" % type(m))
     return m
 
 def read_submission():

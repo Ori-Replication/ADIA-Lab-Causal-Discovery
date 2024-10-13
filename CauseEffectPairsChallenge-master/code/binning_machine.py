@@ -85,5 +85,5 @@ if __name__ == "__main__":
 
     clf = BinningMachine(LinearRegression(), "doo", n_jobs=1)
     clf.fit(X, y)
-    print clf.predict(X)
-    print y
+    print(clf.predict(X))
+    print(y)

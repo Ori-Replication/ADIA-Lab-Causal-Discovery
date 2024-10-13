@@ -40,11 +40,11 @@ def main():
     train2 = None
     target2 = None
     for s in set2:
-        print "Reading in training data", s
+        print( "Reading in training data", s)
         tr = data_io.read_data(s)
-        print "Extracting features"
+        print( "Extracting features")
         tr = model.extract(tr)
-        print "Saving train features"
+        print( "Saving train features")
         data_io.write_data(s, tr)
         tg = data_io.read_target(s)
         train2 = tr if train2 is None else pd.concat((train2, tr), ignore_index=True)
@@ -68,7 +68,7 @@ def main():
     y = np.concatenate((target.Target.values, target2.Target.values)) if target2 is not None else target.Target.values  
     model.fit(X, y)
     model_path = "model.pkl"
-    print "Saving model", model_path
+    print( "Saving model", model_path)
     data_io.save_model(model, model_path)
 
 if __name__=="__main__":
