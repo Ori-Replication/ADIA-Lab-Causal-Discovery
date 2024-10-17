@@ -102,6 +102,7 @@ def discretized_sequence(x, tx, ffactor, maxdev, norm=True):
 def discretized_sequences(x, tx, y, ty, ffactor=3, maxdev=3):
     return discretized_sequence(x, tx, ffactor, maxdev), discretized_sequence(y, ty, ffactor, maxdev)
 
+# TODO
 def normalized_error_probability(x, tx, y, ty, ffactor=3, maxdev=3):
     x, y = discretized_sequences(x, tx, y, ty, ffactor, maxdev)
     cx = Counter(x)
