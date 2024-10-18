@@ -71,10 +71,12 @@ def binary_entropy(p, base):
     h = -(p*np.log(p) + (1-p)*np.log(1-p)) if (p != 0) and (p != 1) else 0
     return h/np.log(base)
 
+# 计算离散化序列的概率分布
 def discrete_probability(x, tx, ffactor, maxdev):    
     x = discretized_sequence(x, tx, ffactor, maxdev)
     return Counter(x)
 
+# 确定离散化后的可能值（没用）
 def discretized_values(x, tx, ffactor, maxdev):
     if numerical(tx) and count_unique(x) > (2*ffactor*maxdev+1):
         vmax =  ffactor*maxdev
@@ -83,9 +85,11 @@ def discretized_values(x, tx, ffactor, maxdev):
     else:
         return sorted(list(set(x)))
 
+# 计算离散化后的可能值数量（没用）
 def len_discretized_values(x, tx, ffactor, maxdev):
     return len(discretized_values(x, tx, ffactor, maxdev))
 
+# 将序列离散化
 def discretized_sequence(x, tx, ffactor, maxdev, norm=True):
     if not norm or (numerical(tx) and count_unique(x) > len_discretized_values(x, tx, ffactor, maxdev)):
         if norm:
@@ -99,9 +103,11 @@ def discretized_sequence(x, tx, ffactor, maxdev, norm=True):
         x[x < vmin] = vmin
     return x
 
+# 同时离散化两个序列
 def discretized_sequences(x, tx, y, ty, ffactor=3, maxdev=3):
     return discretized_sequence(x, tx, ffactor, maxdev), discretized_sequence(y, ty, ffactor, maxdev)
 
+# 计算归一化的错误概率
 def normalized_error_probability(x, tx, y, ty, ffactor=3, maxdev=3):
     x, y = discretized_sequences(x, tx, y, ty, ffactor, maxdev)
     cx = Counter(x)
@@ -118,6 +124,7 @@ def normalized_error_probability(x, tx, y, ty, ffactor=3, maxdev=3):
     pnorm = perr/max_perr if max_perr > 0 else perr
     return pnorm
 
+# 计算离散熵
 def discrete_entropy(x, tx, ffactor=3, maxdev=3, bias_factor=0.7):
     c = discrete_probability(x, tx, ffactor, maxdev)
     pk = np.array(c.values(), dtype=float)
@@ -126,6 +133,7 @@ def discrete_entropy(x, tx, ffactor=3, maxdev=3, bias_factor=0.7):
     S = -np.sum(vec, axis=0)
     return S + bias_factor*(len(pk) - 1)/float(2*len(x))
 
+# 计算两个离散分布间的KL散度
 def discrete_divergence(cx, cy):
     for a, v in cx.most_common():
         if cy[a] == 0: cy[a] = 1
@@ -136,13 +144,15 @@ def discrete_divergence(cx, cy):
     for a, v in cx.most_common():
         px = v/nx
         py = cy[a]/ny
-        sum += px*log(px/py)
+        sum += px*np.log(px/py)
     return sum
 
+# 计算两个离散序列的联合熵
 def discrete_joint_entropy(x, tx, y, ty, ffactor=3, maxdev=3):
     x, y = discretized_sequences(x, tx, y, ty, ffactor, maxdev)
     return discrete_entropy(zip(x,y), CATEGORICAL)
 
+# 计算归一化的联合熵
 def normalized_discrete_joint_entropy(x, tx, y, ty, ffactor=3, maxdev=3):
     x, y = discretized_sequences(x, tx, y, ty, ffactor, maxdev)
     e = discrete_entropy(zip(x,y), CATEGORICAL)
@@ -151,13 +161,16 @@ def normalized_discrete_joint_entropy(x, tx, y, ty, ffactor=3, maxdev=3):
     if nx*ny>0: e = e/np.log(nx*ny)
     return e
 
+# 计算两个离散序列的条件熵
 def discrete_conditional_entropy(x, tx, y, ty):
     return discrete_joint_entropy(x, tx, y, ty) - discrete_entropy(y, ty)
 
+# 计算两个离散序列的调整互信息
 def adjusted_mutual_information(x, tx, y, ty, ffactor=3, maxdev=3):
     x, y = discretized_sequences(x, tx, y, ty, ffactor, maxdev)
     return adjusted_mutual_info_score(x, y)
 
+# 计算两个离散序列的互信息
 def discrete_mutual_information(x, tx, y, ty):
     ex = discrete_entropy(x, tx)
     ey = discrete_entropy(y, ty)
