@@ -2465,3 +2465,95 @@ def conditional_mutual_information_new(dataset):
     df = df[["dataset"] + [colname for colname in df.columns if colname != "dataset"]]
     
     return df
+
+from econml.grf import CausalForest
+from sklearn.model_selection import train_test_split
+
+
+def causal_forest_features_econml(dataset, dataset_name='default_dataset'):
+    """
+    使用 EconML 的 CausalForest 生成因果森林相关特征，包括 v 对 Y、v 对 X、X 对 v、Y 对 v 的因果效应。
+    
+    参数：
+    - dataset (pd.DataFrame): 包含 'X', 'Y' 以及其他处理变量 (v1, v2, ...) 的数据框。
+    - dataset_name (str, optional): 数据集的名称，默认为 'default_dataset'。
+    
+    返回：
+    - cf_features_df (pd.DataFrame): 包含因果森林特征的 DataFrame。
+    """
+    
+    variables = dataset.columns.drop(['X', 'Y'])
+    df_list = []
+
+    # 定义要估计的因果效应类型
+    causal_directions = [
+        ('v', 'Y'),  # v -> Y
+        ('v', 'X'),  # v -> X
+        ('X', 'v'),  # X -> v
+        ('Y', 'v'),  # Y -> v
+    ]
+
+    for v in variables:
+        tmp_dict = {'variable': v}
+        for treatment, outcome in causal_directions:
+            # 动态定义处理变量和结果变量
+            variable_name = outcome
+            if outcome == 'v':
+                outcome = v
+            if treatment == 'v':
+                T = dataset[v].values
+                # 控制变量：除 outcome 外的所有变量
+                X_covariates = dataset.drop(columns=[outcome, v]).values
+            elif treatment == 'X':
+                T = dataset['X'].values
+                # 控制变量：除 outcome 外的所有变量
+                X_covariates = dataset.drop(columns=[outcome, 'X']).values
+            elif treatment == 'Y':
+                T = dataset['Y'].values
+                # 控制变量：除 outcome 外的所有变量
+                X_covariates = dataset.drop(columns=[outcome, 'Y']).values
+            else:
+                raise ValueError(f"未知的处理变量: {treatment}")
+            
+            Y_val = dataset[outcome].values
+            X_train, X_test, T_train, T_test, Y_train, Y_test = train_test_split(
+                X_covariates, T, Y_val, test_size=0.2, random_state=42
+            )
+            # 初始化因果森林模型
+            cf = CausalForest(n_estimators=100, random_state=42)
+
+            # 拟合模型（使用关键字参数）
+            cf.fit(X=X_train, T=T_train, y=Y_train)
+
+            # 预测个体化因果效应（ITE）
+            te_pred = cf.predict(X_test)
+
+            # 计算 ITE 的统计特征
+            ite_mean = np.mean(te_pred)
+            ite_std = np.std(te_pred)
+
+            # 提取变量重要性
+            var_importance = cf.feature_importances_
+
+            # 创建特征字典
+            tmp_dict.update({
+                f'causal_forest_ite_mean_{treatment}_{variable_name}': ite_mean,
+                f'causal_forest_ite_std_{treatment}_{variable_name}': ite_std,
+            })
+
+            # # 将变量重要性添加到特征字典
+            # control_vars = dataset.drop(columns=[outcome, v] if treatment == 'v' else 
+            #                            ([outcome, 'X'] if treatment == 'X' else 
+            #                             ([outcome, 'Y'] if treatment == 'Y' else []))).columns
+            # for idx, col_name in enumerate(control_vars):
+            #     feature_dict[f'causal_forest_varimp_{col_name}'] = var_importance[idx]
+
+        df_list.append(tmp_dict)
+
+    # 转换为 DataFrame
+    cf_features_df = pd.DataFrame(df_list)
+
+    # 添加数据集名称
+    cf_features_df['dataset'] = dataset_name
+
+    return cf_features_df
