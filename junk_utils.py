@@ -2557,3 +2557,322 @@ def causal_forest_features_econml(dataset, dataset_name='default_dataset'):
     cf_features_df['dataset'] = dataset_name
 
     return cf_features_df
+
+class MDLScore:
+    def __init__(self, data):
+        self.data = data
+        self.N = data.shape[0]  # 数据样本数
+        self.variables = data.columns.tolist()
+        self.state_names = {var: data[var].unique() for var in self.variables}
+        self.cardinality = {var: len(states) for var, states in self.state_names.items()}
+
+    def compute_local_score(self, var, parents):
+        """
+        计算给定变量和其父节点的 MDL 局部得分
+        """
+        data = self.data
+        var_states = self.state_names[var]
+        r = self.cardinality[var]
+
+        if not parents:
+            # 没有父节点，计算变量的熵
+            counts = data[var].value_counts().values
+            N_j = counts.sum()
+            H = -np.sum((counts / N_j) * np.log2(counts / N_j + 1e-10))
+            # 模型描述长度（参数的编码长度）
+            mdl_param = 0.5 * np.log2(self.N) * (r - 1)
+            # 数据描述长度
+            mdl_data = N_j * H
+        else:
+            # 有父节点，计算条件熵
+            parents_states = [self.state_names[p] for p in parents]
+            q = np.prod([self.cardinality[p] for p in parents])
+
+            # 计算条件频数
+            grouped = data.groupby([var] + parents).size().unstack(fill_value=0)
+            counts = grouped.values
+            N_ij = counts.sum(axis=0)
+            N_ijk = counts
+
+            # 条件熵
+            H = 0
+            for j in range(q):
+                counts_j = N_ijk[:, j]
+                N_j = N_ij[j]
+                if N_j > 0:
+                    probs = counts_j / N_j
+                    H_j = -np.sum(probs * np.log2(probs + 1e-10))
+                    H += N_j * H_j
+            # 模型描述长度
+            mdl_param = 0.5 * np.log2(self.N) * (q * (r - 1))
+            # 数据描述长度
+            mdl_data = H
+        # 总的 MDL 得分
+        mdl_score = mdl_param + mdl_data
+        return mdl_score
+
+def forms_cycle(structure):
+    """
+    检查给定的结构是否形成环路
+    """
+    from collections import defaultdict, deque
+
+    graph = defaultdict(list)
+    for child, parents in structure.items():
+        for parent in parents:
+            graph[parent].append(child)
+
+    visited = set()
+    stack = set()
+
+    def visit(node):
+        if node in stack:
+            return True  # 有环
+        if node in visited:
+            return False
+        visited.add(node)
+        stack.add(node)
+        for neighbor in graph[node]:
+            if visit(neighbor):
+                return True
+        stack.remove(node)
+        return False
+
+    for node in structure:
+        if visit(node):
+            return True
+    return False
+
+def mdl_structure_learning(dataset):
+    data = dataset.copy()
+    variables = data.columns.tolist()
+    variables.remove('X')
+    variables.remove('Y')
+    mdl_scorer = MDLScore(data)
+
+    # 初始网络（只包含 X -> Y）
+    current_structure = {var: [] for var in data.columns}
+    current_structure['Y'] = ['X']
+
+    # 初始化 MDL 得分
+    current_score = sum(mdl_scorer.compute_local_score(var, current_structure[var]) for var in data.columns)
+
+    # 可操作的变量（除了 X 和 Y）
+    candidate_variables = variables.copy()
+
+    # 贪心搜索算法
+    max_iter = 100
+    for _ in range(max_iter):
+        improved = False
+        best_structure = None
+        best_score = current_score
+
+        # 尝试对每个候选变量添加边到 X 或 Y，或者从 X 或 Y 添加边到候选变量
+        for var in candidate_variables:
+            for target in ['X', 'Y']:
+                for direction in ['from_var_to_target', 'from_target_to_var']:
+                    new_structure = deepcopy(current_structure)
+                    if direction == 'from_var_to_target':
+                        if target not in new_structure[var]:
+                            new_structure[target].append(var)
+                    else:
+                        if var not in new_structure[target]:
+                            new_structure[var].append(target)
+
+                    # 检查是否形成环路（简单的环路检测）
+                    if forms_cycle(new_structure):
+                        continue
+
+                    # 计算新结构的 MDL 得分
+                    try:
+                        new_score = sum(mdl_scorer.compute_local_score(v, new_structure[v]) for v in data.columns)
+                    except Exception as e:
+                        continue
+
+                    if new_score < best_score:
+                        best_score = new_score
+                        best_structure = new_structure
+                        improved = True
+
+        if improved:
+            current_structure = best_structure
+            current_score = best_score
+        else:
+            break  # 如果没有改进，停止搜索
+
+    # 构建边列表
+    edges = []
+    for child, parents in current_structure.items():
+        for parent in parents:
+            edges.append((parent, child))
+
+    edge_set = set(edges)
+
+    # 构建结果 DataFrame
+    df = []
+    for variable in variables:
+        v_to_X = int((variable, 'X') in edge_set)
+        X_to_v = int(('X', variable) in edge_set)
+        v_to_Y = int((variable, 'Y') in edge_set)
+        Y_to_v = int(('Y', variable) in edge_set)
+        X_to_Y = int(('X', 'Y') in edge_set)
+        Y_to_X = int(('Y', 'X') in edge_set)
+
+        df.append({
+            "variable": variable,
+            "MDL(v,X)": v_to_X,
+            "MDL(X,v)": X_to_v,
+            "MDL(v,Y)": v_to_Y,
+            "MDL(Y,v)": Y_to_v,
+            "MDL(X,Y)": X_to_Y,
+            "MDL(Y,X)": Y_to_X
+        })
+
+    df = pd.DataFrame(df)
+    df["dataset"] = getattr(dataset, 'name', 'dataset')
+
+    # 调整列的顺序
+    df = df[["dataset"] + [col for col in df.columns if col != "dataset"]]
+
+    return df
+
+# 更复杂的结构方程，感觉没用
+def sem_features_v2(dataset):
+    """
+    针对每个变量 v，构建八种 SEM 模型，计算模型拟合指标，生成特征。
+
+    参数：
+    - dataset: 包含 X, Y, v1, v2, ... 的 pandas DataFrame
+
+    返回：
+    - 包含 SEM 特征的 pandas DataFrame
+    """
+    variables = dataset.columns.drop(['X', 'Y'])
+    df = []
+
+    # 定义八种关系的 SEM 模型描述
+    model_templates = {
+        "Confounder": """
+            X ~ v0 + variables
+            Y ~ X + v0 + variables
+            X ~~ X
+            Y ~~ Y
+            v0 ~~ v0 + variables
+        """,
+        "Collider": """
+            v0 ~ X + Y
+            X ~ variables
+            Y ~ X + variables
+            X ~~ X
+            Y ~~ Y
+            v0 ~~ v0 + variables
+        """,
+        "Mediator": """
+            v0 ~ X
+            X ~ variables
+            Y ~ v0 + X + variables
+            X ~~ X
+            Y ~~ Y
+            v0 ~~ v0 + variables
+        """,
+        "Cause of X": """
+            X ~ v0 + variables
+            Y ~ X + variables
+            X ~~ X
+            Y ~~ Y
+            v0 ~~ v0 + variables
+        """,
+        "Cause of Y": """
+            X ~ v0 + variables
+            Y ~ X + v0 + variables
+            X ~~ X
+            Y ~~ Y
+            v0 ~~ v0 + variables
+        """,
+        "Consequence of X": """
+            v0 ~ X
+            X ~ variables
+            Y ~ X + variables
+            X ~~ X
+            Y ~~ Y
+            v0 ~~ v0 + variables
+        """,
+        "Consequence of Y": """
+            v0 ~ Y
+            X ~ variables
+            Y ~ X + variables
+            X ~~ X
+            Y ~~ Y
+            v0 ~~ v0 + variables
+        """,
+        "Independent": """
+            X ~ variables
+            Y ~ X + variables
+            X ~~ X
+            Y ~~ Y
+        """
+    }
+
+    # 对于每个变量 v，构建并拟合八种模型
+    for variable in variables:
+        # 存储每种模型的拟合指标
+        fit_indices_list = []
+        for label, model_desc_template in model_templates.items():
+            # 替换模型描述中的变量名
+            model_desc = replace_v_in_sem(variable, variables, model_desc_template)
+            try:
+                # 创建并拟合模型
+                model = Model(model_desc)
+                # 使用全局优化器，以提高模型拟合的稳定性, 关闭所有警告
+                model.fit(dataset, solver='SLSQP')
+                # 获取模型拟合指标
+                # fit_indices = inspect(model)
+                stats = semopy.calc_stats(model)
+                # 提取常用的拟合指标
+                
+                fit_metrics = {
+                    'AIC': stats['AIC'].loc['Value'],
+                    # 'BIC': stats['BIC'].loc['Value'],
+                    'CFI': stats['CFI'].loc['Value'],
+                    'TLI': stats['TLI'].loc['Value'],
+                    # 'RMSEA': stats['RMSEA'].loc['Value'],
+                }
+            except Exception as e:
+                # 如果模型无法收敛，设置拟合指标为缺失值
+                print(e)
+                print(model_desc_template)
+                fit_metrics = {
+                    'AIC': None,
+                    # 'BIC': None,
+                    'CFI': None,
+                    'TLI': None,
+                    # 'RMSEA': None,
+                }
+            fit_metrics['Model'] = label
+            fit_indices_list.append(fit_metrics)
+        # 将拟合指标列表转换为 DataFrame
+        fit_df = pd.DataFrame(fit_indices_list)
+        fit_df['variable'] = variable
+        df.append(fit_df)
+
+    # 合并所有变量的结果
+    result_df = pd.concat(df, ignore_index=True)
+
+    # 将模型名称和变量名称组合，展开为列
+    pivot_df = result_df.pivot(index='variable', columns='Model')
+    pivot_df.columns = ['_'.join(col).strip() for col in pivot_df.columns.values]
+    pivot_df.reset_index(inplace=True)
+    pivot_df['dataset'] = dataset.name
+
+    # 返回结果 DataFrame
+    return pivot_df
+
+# 工具函数：替换模型描述中的变量名
+def replace_v_in_sem(v0, variables, model_desc_template):
+    variables = variables.tolist()
+    variables.remove(v0)
+    print(v0, variables)
+    variables_str_right = ' + '.join(variables)
+    variables_str_left = ' , '.join(variables)
+    model_desc = model_desc_template.replace('v0', v0).replace('variables_l', variables_str_left).replace('variables', variables_str_right)
+    return model_desc
