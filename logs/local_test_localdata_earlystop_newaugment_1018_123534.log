@@ -1,0 +1,300 @@
+2024-10-18 12:36:57,710 - INFO - 读取Local Dataset: 25380, 25380
+2024-10-18 12:36:57,713 - INFO - ##### Loading ./tmp/X_y_group_train_local_test_localdata_earlystop_newaugment.pkl
+2024-10-18 12:36:57,715 - INFO - ##### Creating X_y_group_train
+2024-10-18 12:40:01,806 - INFO -      ->数据增强失败次数: {3: 8079, 4: 6695, 5: 3685, 6: 1279, 7: 427, 8: 228, 9: 218, 10: 253}
+2024-10-18 12:40:01,809 - INFO -      ->数据增强后样本量: 207556, 207556
+2024-10-19 05:19:17,337 - INFO -      ->X_y_group_train形状: (1344871, 313) 
+ X_y_group_train列名: ['variable', 'dimension', 'square_dimension', 'dataset', 'label', 'corr(v,X)', 'corr(v,Y)', 'max(corr(v, others))', 'min(corr(v, others))', 'mean(corr(v, others))', 'std(corr(v, others))', '25%(corr(v, others))', '75%(corr(v, others))', 'corr(X,Y)', 'max(abs_rolling_corr(v, X))', 'min(abs_rolling_corr(v, X))', 'mean(abs_rolling_corr(v, X))', 'max(abs_rolling_corr(v, Y))', 'min(abs_rolling_corr(v, Y))', 'mean(abs_rolling_corr(v, Y))', 'spearman_corr(v,X)', 'spearman_corr(v,Y)', 'max(spearman_corr(v, others))', 'min(spearman_corr(v, others))', 'mean(spearman_corr(v, others))', 'std(spearman_corr(v, others))', 'spearman_corr(X,Y)', 'kendall_corr(v,X)', 'kendall_corr(v,Y)', 'max(kendall_corr(v, others))', 'min(kendall_corr(v, others))', 'mean(kendall_corr(v, others))', 'std(kendall_corr(v, others))', 'kendall_corr(X,Y)', 'MI(v,X)', 'MI(v,Y)', 'max(MI(v, others))', 'min(MI(v, others))', 'mean(MI(v, others))', 'std(MI(v, others))', 'MI(X,Y)', 'conditional_MI(v,X|Y)', 'conditional_MI(v,Y|X)', 'conditional_MI(X,Y|v)', 'dcor(v,X)', 'dcor(v,Y)', 'dcor(v,X)^2', 'dcor(v,Y)^2', 'max(dcor(v, others))', 'min(dcor(v, others))', 'mean(dcor(v, others))', 'std(dcor(v, others))', '25%(dcor(v, others))', '75%(dcor(v, others))', 'dcor(X,Y)', 'dcor(X,Y)^2', 'partial_corr(v,X|Y)', 'partial_corr(v,Y|X)', 'partial_corr(X,Y|v)', 'copula_entropy(v,X)', 'copula_entropy(v,Y)', 'copula_entropy(X,Y)', 'PPS(v,X)', 'PPS(X,v)', 'PPS(v,Y)', 'PPS(Y,v)', 'PPS(X,Y)', 'max(PPS(v,others))', 'mean(PPS(v,others))', 'v~Y_coefficient', 'v_squared~Y_coefficient', 'v*X~Y_coefficient', 'v_cos~Y_coefficient', 'v_sin~Y_coefficient', 'v~X_coefficient', 'v_squared~X_coefficient', 'v_cos~X_coefficient', 'v_sin~X_coefficient', 'X~v_coefficient', 'X_squared~v_coefficient', 'X_cos~v_coefficient', 'X_sin~v_coefficient', 'Y~v_coefficient', 'Y_squared~v_coefficient', 'Y_cos~v_coefficient', 'Y_sin~v_coefficient', 'X*Y~v_coefficient', 'X~Y_coefficient', 'v~Y_ridge_coefficient', 'v~X_ridge_coefficient', 'X~Y_ridge_coefficient', 'ExactSearch(v,X)', 'ExactSearch(X,v)', 'ExactSearch(v,Y)', 'ExactSearch(Y,v)', 'ExactSearch(X,Y)', 'PC(v,X)', 'PC(X,v)', 'PC(v,Y)', 'PC(Y,v)', 'PC(X,Y)', 'FCI(v,X)', 'FCI(X,v)', 'FCI(v,Y)', 'FCI(Y,v)', 'FCI(X,Y)', 'GRaSP(v,X)', 'GRaSP(X,v)', 'GRaSP(v,Y)', 'GRaSP(Y,v)', 'GRaSP(X,Y)', 'v~X_DML_AMTE', 'v~X_DML_AMTE_zstat', 'v~X_DML_AMTE_pvalue', 'v~X_DML_std_point', 'v~X_DML_stderr_point', 'v~Y_DML_AMTE', 'v~Y_DML_AMTE_zstat', 'v~Y_DML_AMTE_pvalue', 'v~Y_DML_std_point', 'v~Y_DML_stderr_point', 'X~v_DML_AMTE', 'X~v_DML_AMTE_zstat', 'X~v_DML_AMTE_pvalue', 'X~v_DML_std_point', 'X~v_DML_stderr_point', 'Y~v_DML_AMTE', 'Y~v_DML_AMTE_zstat', 'Y~v_DML_AMTE_pvalue', 'Y~v_DML_std_point', 'Y~v_DML_stderr_point', 'v~X_piecewise_coef1_x', 'v~X_piecewise_coef2_x', 'v~Y_piecewise_coef1_x', 'v~Y_piecewise_coef2_x', 'X~v_piecewise_coef1_x', 'X~v_piecewise_coef2_x', 'Y~v_piecewise_coef1_x', 'Y~v_piecewise_coef2_x', 'v~X_piecewise_coef1_y', 'v~X_piecewise_coef2_y', 'v~X_piecewise_coef3', 'v~X_piecewise_coef4', 'v~Y_piecewise_coef1_y', 'v~Y_piecewise_coef2_y', 'v~Y_piecewise_coef3', 'v~Y_piecewise_coef4', 'X~v_piecewise_coef1_y', 'X~v_piecewise_coef2_y', 'X~v_piecewise_coef3', 'X~v_piecewise_coef4', 'Y~v_piecewise_coef1_y', 'Y~v_piecewise_coef2_y', 'Y~v_piecewise_coef3', 'Y~v_piecewise_coef4', 'v~X_quadratic_coef1', 'v~X_quadratic_coef2', 'v~X_quadratic_coef3', 'v~X_quadratic_coef4', 'v~Y_quadratic_coef1', 'v~Y_quadratic_coef2', 'v~Y_quadratic_coef3', 'v~Y_quadratic_coef4', 'X~v_quadratic_coef1', 'X~v_quadratic_coef2', 'X~v_quadratic_coef3', 'X~v_quadratic_coef4', 'Y~v_quadratic_coef1', 'Y~v_quadratic_coef2', 'Y~v_quadratic_coef3', 'Y~v_quadratic_coef4', 'v~X_sliding_coef1', 'v~X_sliding_coef2', 'v~X_sliding_coef3', 'v~X_sliding_coef4', 'v~X_sliding_coef5', 'v~Y_sliding_coef1', 'v~Y_sliding_coef2', 'v~Y_sliding_coef3', 'v~Y_sliding_coef4', 'v~Y_sliding_coef5', 'X~v_sliding_coef1', 'X~v_sliding_coef2', 'X~v_sliding_coef3', 'X~v_sliding_coef4', 'X~v_sliding_coef5', 'Y~v_sliding_coef1', 'Y~v_sliding_coef2', 'Y~v_sliding_coef3', 'Y~v_sliding_coef4', 'Y~v_sliding_coef5', 'AIC_Cause of X', 'AIC_Cause of Y', 'AIC_Collider', 'AIC_Confounder', 'AIC_Consequence of X', 'AIC_Consequence of Y', 'AIC_Mediator', 'BIC_Cause of X', 'BIC_Cause of Y', 'BIC_Collider', 'BIC_Confounder', 'BIC_Consequence of X', 'BIC_Consequence of Y', 'BIC_Mediator', 'CFI_Cause of X', 'CFI_Cause of Y', 'CFI_Collider', 'CFI_Confounder', 'CFI_Consequence of X', 'CFI_Consequence of Y', 'CFI_Mediator', 'TLI_Cause of X', 'TLI_Cause of Y', 'TLI_Collider', 'TLI_Confounder', 'TLI_Consequence of X', 'TLI_Consequence of Y', 'TLI_Mediator', 'RMSEA_Cause of X', 'RMSEA_Cause of Y', 'RMSEA_Collider', 'RMSEA_Confounder', 'RMSEA_Consequence of X', 'RMSEA_Consequence of Y', 'RMSEA_Mediator', 'grid(v,X)(0,0)', 'grid(v,X)(0,1)', 'grid(v,X)(0,2)', 'grid(v,X)(0,3)', 'grid(v,X)(0,4)', 'grid(v,X)(1,0)', 'grid(v,X)(1,1)', 'grid(v,X)(1,2)', 'grid(v,X)(1,3)', 'grid(v,X)(1,4)', 'grid(v,X)(2,0)', 'grid(v,X)(2,1)', 'grid(v,X)(2,2)', 'grid(v,X)(2,3)', 'grid(v,X)(2,4)', 'grid(v,X)(3,0)', 'grid(v,X)(3,1)', 'grid(v,X)(3,2)', 'grid(v,X)(3,3)', 'grid(v,X)(3,4)', 'grid(v,X)(4,0)', 'grid(v,X)(4,1)', 'grid(v,X)(4,2)', 'grid(v,X)(4,3)', 'grid(v,X)(4,4)', 'grid(v,Y)(0,0)', 'grid(v,Y)(0,1)', 'grid(v,Y)(0,2)', 'grid(v,Y)(0,3)', 'grid(v,Y)(0,4)', 'grid(v,Y)(1,0)', 'grid(v,Y)(1,1)', 'grid(v,Y)(1,2)', 'grid(v,Y)(1,3)', 'grid(v,Y)(1,4)', 'grid(v,Y)(2,0)', 'grid(v,Y)(2,1)', 'grid(v,Y)(2,2)', 'grid(v,Y)(2,3)', 'grid(v,Y)(2,4)', 'grid(v,Y)(3,0)', 'grid(v,Y)(3,1)', 'grid(v,Y)(3,2)', 'grid(v,Y)(3,3)', 'grid(v,Y)(3,4)', 'grid(v,Y)(4,0)', 'grid(v,Y)(4,1)', 'grid(v,Y)(4,2)', 'grid(v,Y)(4,3)', 'grid(v,Y)(4,4)', 'JH(v,x)', 'JH(v,y)', 'CH(v|x)', 'CH(v|y)', 'I(v,x)', 'I(v,y)', 'AMI(v,x)', 'AMI(v,y)', 'NPE(v,x)', 'NPE(v,y)', 'IGCI(v,x)', 'IGCI(v,y)', 'IGCI(x,v)', 'IGCI(y,v)', 'MM(v^2 * x)', 'MM(v^2 * y)', 'MM(v^2 * x^2)', 'MM(v^2 * y^2)', 'MM(v^3 * x)', 'MM(v^3 * y)', 'fit(v,x)', 'fit(v,y)', 'fit_error(v,x)', 'fit_error(v,y)', 'fit_noise_entropy(v,x)', 'fit_noise_entropy(v,y)', 'fit_noise_skewness(v,x)', 'fit_noise_skewness(v,y)', 'fit_noise_kurtosis(v,x)', 'fit_noise_kurtosis(v,y)', 'cond_dist_sim(v,x)', 'cond_dist_sim(v,y)', 'MI(v,X)^2', 'MI(v,Y)^2', 'MI(X,Y)^2', 'max(MI(v, others))^2', 'min(MI(v, others))^2']
+2024-10-19 05:19:17,339 - INFO -      ->X_y_group_train已保存
+2024-10-19 05:19:17,341 - INFO - ##### Adding numeric labels y
+2024-10-19 05:19:18,489 - INFO - ##### Data Preprocessing...
+2024-10-19 05:19:18,997 - INFO -      1.删除多余列后样本量: (1344871, 308)
+2024-10-19 05:19:27,173 - INFO -      2.填充缺失值后样本量: (1344871, 308)
+2024-10-19 05:19:27,178 - INFO -      3.清理特征名称后样本量: (1344871, 308)
+2024-10-19 05:19:27,179 - INFO - ##### Extracting X_train, y_train
+2024-10-19 05:19:40,886 - INFO -      ->->->处理类别特征: dimension，唯一值数量: 8
+2024-10-19 05:19:41,594 - INFO -      ->->->处理类别特征: ExactSearch_v_X，唯一值数量: 2
+2024-10-19 05:19:42,287 - INFO -      ->->->处理类别特征: ExactSearch_X_v，唯一值数量: 2
+2024-10-19 05:19:42,977 - INFO -      ->->->处理类别特征: ExactSearch_v_Y，唯一值数量: 2
+2024-10-19 05:19:43,664 - INFO -      ->->->处理类别特征: ExactSearch_Y_v，唯一值数量: 2
+2024-10-19 05:19:44,344 - INFO -      ->->->处理类别特征: ExactSearch_X_Y，唯一值数量: 2
+2024-10-19 05:19:45,028 - INFO -      ->->->处理类别特征: PC_v_X，唯一值数量: 2
+2024-10-19 05:19:45,704 - INFO -      ->->->处理类别特征: PC_X_v，唯一值数量: 2
+2024-10-19 05:19:46,395 - INFO -      ->->->处理类别特征: PC_v_Y，唯一值数量: 2
+2024-10-19 05:19:47,075 - INFO -      ->->->处理类别特征: PC_Y_v，唯一值数量: 2
+2024-10-19 05:19:47,759 - INFO -      ->->->处理类别特征: PC_X_Y，唯一值数量: 2
+2024-10-19 05:19:48,449 - INFO -      ->->->处理类别特征: FCI_v_X，唯一值数量: 4
+2024-10-19 05:19:49,141 - INFO -      ->->->处理类别特征: FCI_X_v，唯一值数量: 4
+2024-10-19 05:19:49,831 - INFO -      ->->->处理类别特征: FCI_v_Y，唯一值数量: 4
+2024-10-19 05:19:50,519 - INFO -      ->->->处理类别特征: FCI_Y_v，唯一值数量: 4
+2024-10-19 05:19:51,241 - INFO -      ->->->处理类别特征: FCI_X_Y，唯一值数量: 4
+2024-10-19 05:19:51,942 - INFO -      ->->->处理类别特征: GRaSP_v_X，唯一值数量: 3
+2024-10-19 05:19:52,635 - INFO -      ->->->处理类别特征: GRaSP_X_v，唯一值数量: 3
+2024-10-19 05:19:53,353 - INFO -      ->->->处理类别特征: GRaSP_v_Y，唯一值数量: 3
+2024-10-19 05:19:54,057 - INFO -      ->->->处理类别特征: GRaSP_Y_v，唯一值数量: 3
+2024-10-19 05:19:54,752 - INFO -      ->->->处理类别特征: GRaSP_X_Y，唯一值数量: 3
+2024-10-19 05:19:55,459 - INFO -      ->类别特征索引 (cat_idxs): [0, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105]
+2024-10-19 05:19:55,460 - INFO -      ->类别特征模态数 (cat_dims): [8, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 4, 4, 4, 4, 4, 3, 3, 3, 3, 3]
+2024-10-19 05:19:55,462 - INFO -      4.处理类别特征后样本量: (1344871, 305), (1344871,)
+2024-10-19 05:19:55,463 - INFO - ##### Extracting X_train, y_train, and group
+2024-10-19 05:24:03,597 - INFO -      5.分割数据集后样本量: (1210324, 304), (134547, 304), (1210324,), (134547,)
+2024-10-19 05:24:03,625 - INFO -      ->y_train 唯一值: [0 1 2 3 4 5 6 7]
+2024-10-19 05:24:03,629 - INFO -      ->y_test 唯一值: [0 1 2 3 4 5 6 7]
+2024-10-19 05:24:03,631 - INFO - ##### Computing class weights
+2024-10-19 05:24:03,782 - INFO -      ->分类目标权重列表: [3.058041760152002, 3.1170138245050167, 3.1016134322850464, 0.307218774621689, 1.7386115516329954, 0.8350701823139465, 0.6964049805519115, 1.7663806187974314]
+2024-10-19 05:24:03,783 - INFO -      ->分类目标权重字典: {0: 3.058041760152002, 1: 3.1170138245050167, 2: 3.1016134322850464, 3: 0.307218774621689, 4: 1.7386115516329954, 5: 0.8350701823139465, 6: 0.6964049805519115, 7: 1.7663806187974314}
+2024-10-19 05:24:03,797 - INFO - ##### Start training
+2024-10-19 05:39:22,323 - INFO - ##### Xgb的参数配置:
+2024-10-19 05:39:22,330 - INFO - {   'base_score': None,
+    'booster': None,
+    'callbacks': [<xgboost.callback.EarlyStopping object at 0x7efe3c9db7d0>],
+    'colsample_bylevel': None,
+    'colsample_bynode': None,
+    'colsample_bytree': 0.7,
+    'device': None,
+    'early_stopping_rounds': None,
+    'enable_categorical': False,
+    'eval_metric': 'mlogloss',
+    'feature_types': None,
+    'gamma': 0.3,
+    'grow_policy': None,
+    'importance_type': None,
+    'interaction_constraints': None,
+    'learning_rate': 0.05,
+    'max_bin': None,
+    'max_cat_threshold': None,
+    'max_cat_to_onehot': None,
+    'max_delta_step': 0.5,
+    'max_depth': 6,
+    'max_leaves': None,
+    'min_child_weight': 1,
+    'missing': nan,
+    'monotone_constraints': None,
+    'multi_strategy': None,
+    'n_estimators': 5000,
+    'n_jobs': None,
+    'num_class': 8,
+    'num_parallel_tree': None,
+    'objective': 'multi:softmax',
+    'random_state': 42,
+    'reg_alpha': 18.0,
+    'reg_lambda': 18.0,
+    'sampling_method': None,
+    'scale_pos_weight': None,
+    'subsample': 0.7,
+    'tree_method': 'gpu_hist',
+    'use_label_encoder': False,
+    'validate_parameters': None,
+    'verbosity': 0}
+2024-10-19 05:39:22,346 - INFO - ############################
+2024-10-19 05:39:22,352 - INFO -      Xgb的性能展示:
+2024-10-19 05:39:22,358 - INFO - ############################
+2024-10-19 05:40:15,522 - INFO -      ->训练集平衡准确率: 0.903445
+2024-10-19 05:40:15,523 - INFO -      ->测试集平衡准确率: 0.731160
+2024-10-19 05:40:15,525 - INFO -      ->测试集分类报告:
+2024-10-19 05:40:15,720 - INFO - 
+              precision    recall  f1-score   support
+
+           0       0.58      0.66      0.62      5592
+           1       0.57      0.64      0.60      5481
+           2       0.50      0.57      0.53      5444
+           3       0.92      0.85      0.89     54739
+           4       0.64      0.76      0.69      9502
+           5       0.77      0.73      0.75     20141
+           6       0.86      0.84      0.85     24226
+           7       0.69      0.80      0.74      9422
+
+    accuracy                           0.79    134547
+   macro avg       0.69      0.73      0.71    134547
+weighted avg       0.81      0.79      0.80    134547
+
+2024-10-19 05:40:16,452 - INFO -      5.Xgboost训练完成
+2024-10-19 05:40:16,454 - INFO - ############################
+2024-10-19 05:40:16,455 - INFO - 
+
+2024-10-19 05:48:21,344 - INFO - ##### Cat的参数配置:
+2024-10-19 05:48:21,346 - INFO - {   'cat_features': [   0,
+                        86,
+                        87,
+                        88,
+                        89,
+                        90,
+                        91,
+                        92,
+                        93,
+                        94,
+                        95,
+                        96,
+                        97,
+                        98,
+                        99,
+                        100,
+                        101,
+                        102,
+                        103,
+                        104,
+                        105],
+    'class_weights': [   3.058041760152002,
+                         3.1170138245050167,
+                         3.1016134322850464,
+                         0.307218774621689,
+                         1.7386115516329954,
+                         0.8350701823139465,
+                         0.6964049805519115,
+                         1.7663806187974314],
+    'classes_count': 8,
+    'depth': 12,
+    'devices': '0:1',
+    'early_stopping_rounds': 30,
+    'eval_metric': 'Accuracy',
+    'iterations': 4000,
+    'l2_leaf_reg': 18.0,
+    'leaf_estimation_method': 'Newton',
+    'learning_rate': 0.05,
+    'loss_function': 'MultiClass',
+    'random_seed': 42,
+    'save_snapshot': False,
+    'task_type': 'GPU',
+    'train_dir': '/tmp/catboost_info_local_test_localdata_earlystop_newaugment',
+    'use_best_model': True,
+    'verbose': 100}
+2024-10-19 05:48:21,347 - INFO - ############################
+2024-10-19 05:48:21,348 - INFO -      Cat的性能展示:
+2024-10-19 05:48:21,350 - INFO - ############################
+2024-10-19 05:48:27,299 - INFO -      ->训练集平衡准确率: 0.850194
+2024-10-19 05:48:27,301 - INFO -      ->测试集平衡准确率: 0.714305
+2024-10-19 05:48:27,303 - INFO -      ->测试集分类报告:
+2024-10-19 05:48:27,505 - INFO - 
+              precision    recall  f1-score   support
+
+           0       0.55      0.65      0.59      5592
+           1       0.53      0.62      0.57      5481
+           2       0.46      0.56      0.50      5444
+           3       0.92      0.83      0.87     54739
+           4       0.60      0.74      0.66      9502
+           5       0.75      0.70      0.73     20141
+           6       0.85      0.83      0.84     24226
+           7       0.66      0.79      0.72      9422
+
+    accuracy                           0.77    134547
+   macro avg       0.66      0.71      0.69    134547
+weighted avg       0.79      0.77      0.78    134547
+
+2024-10-19 05:48:29,691 - INFO -      6.Catboost训练完成
+2024-10-19 05:48:29,693 - INFO - ############################
+2024-10-19 05:48:29,694 - INFO - 
+
+2024-10-19 06:25:03,972 - INFO - ##### Lgb的参数配置:
+2024-10-19 06:25:03,973 - INFO - {   'boosting_type': 'gbdt',
+    'class_weight': 'balanced',
+    'colsample_bytree': 0.6,
+    'device': 'cpu',
+    'importance_type': 'split',
+    'learning_rate': 0.05,
+    'max_depth': 6,
+    'min_child_samples': 50,
+    'min_child_weight': 0.001,
+    'min_split_gain': 0.0,
+    'n_estimators': 5000,
+    'n_jobs': -1,
+    'num_leaves': 21,
+    'objective': None,
+    'random_state': 42,
+    'reg_alpha': 18.0,
+    'reg_lambda': 18.0,
+    'subsample': 1.0,
+    'subsample_for_bin': 200000,
+    'subsample_freq': 0,
+    'verbosity': -1}
+2024-10-19 06:25:03,974 - INFO - ############################
+2024-10-19 06:25:03,975 - INFO -      Lgb的性能展示:
+2024-10-19 06:25:03,975 - INFO - ############################
+2024-10-19 06:31:10,127 - INFO -      ->训练集平衡准确率: 0.883646
+2024-10-19 06:31:10,129 - INFO -      ->测试集平衡准确率: 0.731189
+2024-10-19 06:31:10,130 - INFO -      ->测试集分类报告:
+2024-10-19 06:31:10,328 - INFO - 
+              precision    recall  f1-score   support
+
+           0       0.58      0.66      0.62      5592
+           1       0.55      0.64      0.59      5481
+           2       0.49      0.58      0.53      5444
+           3       0.92      0.85      0.88     54739
+           4       0.63      0.76      0.69      9502
+           5       0.77      0.72      0.75     20141
+           6       0.86      0.84      0.85     24226
+           7       0.69      0.80      0.74      9422
+
+    accuracy                           0.79    134547
+   macro avg       0.69      0.73      0.71    134547
+weighted avg       0.80      0.79      0.80    134547
+
+2024-10-19 06:31:10,762 - INFO -      7.LightGBM训练完成
+2024-10-19 06:31:10,764 - INFO - ############################
+2024-10-19 06:31:10,765 - INFO - 
+
+2024-10-19 06:31:10,766 - INFO -      Voting的性能展示:
+2024-10-19 06:31:10,767 - INFO - ############################
+2024-10-19 06:38:55,361 - INFO -      ->训练集平衡准确率: 0.886712
+2024-10-19 06:38:55,363 - INFO -      ->测试集平衡准确率: 0.732040
+2024-10-19 06:38:55,364 - INFO -      ->测试集分类报告:
+2024-10-19 06:38:55,560 - INFO - 
+              precision    recall  f1-score   support
+
+           0       0.58      0.66      0.62      5592
+           1       0.56      0.64      0.60      5481
+           2       0.49      0.58      0.53      5444
+           3       0.92      0.85      0.88     54739
+           4       0.63      0.76      0.69      9502
+           5       0.77      0.73      0.75     20141
+           6       0.86      0.84      0.85     24226
+           7       0.69      0.80      0.74      9422
+
+    accuracy                           0.79    134547
+   macro avg       0.69      0.73      0.71    134547
+weighted avg       0.80      0.79      0.80    134547
+
+2024-10-19 06:38:55,561 - INFO -      8.Voting检查完成
+2024-10-19 06:38:55,563 - INFO - ############################
+2024-10-19 06:38:55,564 - INFO - 
+
+2024-10-19 06:38:58,001 - INFO - ##### Loading ./tmp/X_group_test_local_test_localdata_earlystop_newaugment.pkl
+2024-10-19 06:38:58,003 - INFO - ##### Creating X_group_test
+2024-10-19 06:50:00,847 - INFO -      ->X_group_test形状: (11486, 312) 
+ X_group_test列名: ['variable', 'dimension', 'square_dimension', 'dataset', 'corr(v,X)', 'corr(v,Y)', 'max(corr(v, others))', 'min(corr(v, others))', 'mean(corr(v, others))', 'std(corr(v, others))', '25%(corr(v, others))', '75%(corr(v, others))', 'corr(X,Y)', 'max(abs_rolling_corr(v, X))', 'min(abs_rolling_corr(v, X))', 'mean(abs_rolling_corr(v, X))', 'max(abs_rolling_corr(v, Y))', 'min(abs_rolling_corr(v, Y))', 'mean(abs_rolling_corr(v, Y))', 'spearman_corr(v,X)', 'spearman_corr(v,Y)', 'max(spearman_corr(v, others))', 'min(spearman_corr(v, others))', 'mean(spearman_corr(v, others))', 'std(spearman_corr(v, others))', 'spearman_corr(X,Y)', 'kendall_corr(v,X)', 'kendall_corr(v,Y)', 'max(kendall_corr(v, others))', 'min(kendall_corr(v, others))', 'mean(kendall_corr(v, others))', 'std(kendall_corr(v, others))', 'kendall_corr(X,Y)', 'MI(v,X)', 'MI(v,Y)', 'max(MI(v, others))', 'min(MI(v, others))', 'mean(MI(v, others))', 'std(MI(v, others))', 'MI(X,Y)', 'conditional_MI(v,X|Y)', 'conditional_MI(v,Y|X)', 'conditional_MI(X,Y|v)', 'dcor(v,X)', 'dcor(v,Y)', 'dcor(v,X)^2', 'dcor(v,Y)^2', 'max(dcor(v, others))', 'min(dcor(v, others))', 'mean(dcor(v, others))', 'std(dcor(v, others))', '25%(dcor(v, others))', '75%(dcor(v, others))', 'dcor(X,Y)', 'dcor(X,Y)^2', 'partial_corr(v,X|Y)', 'partial_corr(v,Y|X)', 'partial_corr(X,Y|v)', 'copula_entropy(v,X)', 'copula_entropy(v,Y)', 'copula_entropy(X,Y)', 'PPS(v,X)', 'PPS(X,v)', 'PPS(v,Y)', 'PPS(Y,v)', 'PPS(X,Y)', 'max(PPS(v,others))', 'mean(PPS(v,others))', 'v~Y_coefficient', 'v_squared~Y_coefficient', 'v*X~Y_coefficient', 'v_cos~Y_coefficient', 'v_sin~Y_coefficient', 'v~X_coefficient', 'v_squared~X_coefficient', 'v_cos~X_coefficient', 'v_sin~X_coefficient', 'X~v_coefficient', 'X_squared~v_coefficient', 'X_cos~v_coefficient', 'X_sin~v_coefficient', 'Y~v_coefficient', 'Y_squared~v_coefficient', 'Y_cos~v_coefficient', 'Y_sin~v_coefficient', 'X*Y~v_coefficient', 'X~Y_coefficient', 'v~Y_ridge_coefficient', 'v~X_ridge_coefficient', 'X~Y_ridge_coefficient', 'ExactSearch(v,X)', 'ExactSearch(X,v)', 'ExactSearch(v,Y)', 'ExactSearch(Y,v)', 'ExactSearch(X,Y)', 'PC(v,X)', 'PC(X,v)', 'PC(v,Y)', 'PC(Y,v)', 'PC(X,Y)', 'FCI(v,X)', 'FCI(X,v)', 'FCI(v,Y)', 'FCI(Y,v)', 'FCI(X,Y)', 'GRaSP(v,X)', 'GRaSP(X,v)', 'GRaSP(v,Y)', 'GRaSP(Y,v)', 'GRaSP(X,Y)', 'v~X_DML_AMTE', 'v~X_DML_AMTE_zstat', 'v~X_DML_AMTE_pvalue', 'v~X_DML_std_point', 'v~X_DML_stderr_point', 'v~Y_DML_AMTE', 'v~Y_DML_AMTE_zstat', 'v~Y_DML_AMTE_pvalue', 'v~Y_DML_std_point', 'v~Y_DML_stderr_point', 'X~v_DML_AMTE', 'X~v_DML_AMTE_zstat', 'X~v_DML_AMTE_pvalue', 'X~v_DML_std_point', 'X~v_DML_stderr_point', 'Y~v_DML_AMTE', 'Y~v_DML_AMTE_zstat', 'Y~v_DML_AMTE_pvalue', 'Y~v_DML_std_point', 'Y~v_DML_stderr_point', 'v~X_piecewise_coef1_x', 'v~X_piecewise_coef2_x', 'v~Y_piecewise_coef1_x', 'v~Y_piecewise_coef2_x', 'X~v_piecewise_coef1_x', 'X~v_piecewise_coef2_x', 'Y~v_piecewise_coef1_x', 'Y~v_piecewise_coef2_x', 'v~X_piecewise_coef1_y', 'v~X_piecewise_coef2_y', 'v~X_piecewise_coef3', 'v~X_piecewise_coef4', 'v~Y_piecewise_coef1_y', 'v~Y_piecewise_coef2_y', 'v~Y_piecewise_coef3', 'v~Y_piecewise_coef4', 'X~v_piecewise_coef1_y', 'X~v_piecewise_coef2_y', 'X~v_piecewise_coef3', 'X~v_piecewise_coef4', 'Y~v_piecewise_coef1_y', 'Y~v_piecewise_coef2_y', 'Y~v_piecewise_coef3', 'Y~v_piecewise_coef4', 'v~X_quadratic_coef1', 'v~X_quadratic_coef2', 'v~X_quadratic_coef3', 'v~X_quadratic_coef4', 'v~Y_quadratic_coef1', 'v~Y_quadratic_coef2', 'v~Y_quadratic_coef3', 'v~Y_quadratic_coef4', 'X~v_quadratic_coef1', 'X~v_quadratic_coef2', 'X~v_quadratic_coef3', 'X~v_quadratic_coef4', 'Y~v_quadratic_coef1', 'Y~v_quadratic_coef2', 'Y~v_quadratic_coef3', 'Y~v_quadratic_coef4', 'v~X_sliding_coef1', 'v~X_sliding_coef2', 'v~X_sliding_coef3', 'v~X_sliding_coef4', 'v~X_sliding_coef5', 'v~Y_sliding_coef1', 'v~Y_sliding_coef2', 'v~Y_sliding_coef3', 'v~Y_sliding_coef4', 'v~Y_sliding_coef5', 'X~v_sliding_coef1', 'X~v_sliding_coef2', 'X~v_sliding_coef3', 'X~v_sliding_coef4', 'X~v_sliding_coef5', 'Y~v_sliding_coef1', 'Y~v_sliding_coef2', 'Y~v_sliding_coef3', 'Y~v_sliding_coef4', 'Y~v_sliding_coef5', 'AIC_Cause of X', 'AIC_Cause of Y', 'AIC_Collider', 'AIC_Confounder', 'AIC_Consequence of X', 'AIC_Consequence of Y', 'AIC_Mediator', 'BIC_Cause of X', 'BIC_Cause of Y', 'BIC_Collider', 'BIC_Confounder', 'BIC_Consequence of X', 'BIC_Consequence of Y', 'BIC_Mediator', 'CFI_Cause of X', 'CFI_Cause of Y', 'CFI_Collider', 'CFI_Confounder', 'CFI_Consequence of X', 'CFI_Consequence of Y', 'CFI_Mediator', 'TLI_Cause of X', 'TLI_Cause of Y', 'TLI_Collider', 'TLI_Confounder', 'TLI_Consequence of X', 'TLI_Consequence of Y', 'TLI_Mediator', 'RMSEA_Cause of X', 'RMSEA_Cause of Y', 'RMSEA_Collider', 'RMSEA_Confounder', 'RMSEA_Consequence of X', 'RMSEA_Consequence of Y', 'RMSEA_Mediator', 'grid(v,X)(0,0)', 'grid(v,X)(0,1)', 'grid(v,X)(0,2)', 'grid(v,X)(0,3)', 'grid(v,X)(0,4)', 'grid(v,X)(1,0)', 'grid(v,X)(1,1)', 'grid(v,X)(1,2)', 'grid(v,X)(1,3)', 'grid(v,X)(1,4)', 'grid(v,X)(2,0)', 'grid(v,X)(2,1)', 'grid(v,X)(2,2)', 'grid(v,X)(2,3)', 'grid(v,X)(2,4)', 'grid(v,X)(3,0)', 'grid(v,X)(3,1)', 'grid(v,X)(3,2)', 'grid(v,X)(3,3)', 'grid(v,X)(3,4)', 'grid(v,X)(4,0)', 'grid(v,X)(4,1)', 'grid(v,X)(4,2)', 'grid(v,X)(4,3)', 'grid(v,X)(4,4)', 'grid(v,Y)(0,0)', 'grid(v,Y)(0,1)', 'grid(v,Y)(0,2)', 'grid(v,Y)(0,3)', 'grid(v,Y)(0,4)', 'grid(v,Y)(1,0)', 'grid(v,Y)(1,1)', 'grid(v,Y)(1,2)', 'grid(v,Y)(1,3)', 'grid(v,Y)(1,4)', 'grid(v,Y)(2,0)', 'grid(v,Y)(2,1)', 'grid(v,Y)(2,2)', 'grid(v,Y)(2,3)', 'grid(v,Y)(2,4)', 'grid(v,Y)(3,0)', 'grid(v,Y)(3,1)', 'grid(v,Y)(3,2)', 'grid(v,Y)(3,3)', 'grid(v,Y)(3,4)', 'grid(v,Y)(4,0)', 'grid(v,Y)(4,1)', 'grid(v,Y)(4,2)', 'grid(v,Y)(4,3)', 'grid(v,Y)(4,4)', 'JH(v,x)', 'JH(v,y)', 'CH(v|x)', 'CH(v|y)', 'I(v,x)', 'I(v,y)', 'AMI(v,x)', 'AMI(v,y)', 'NPE(v,x)', 'NPE(v,y)', 'IGCI(v,x)', 'IGCI(v,y)', 'IGCI(x,v)', 'IGCI(y,v)', 'MM(v^2 * x)', 'MM(v^2 * y)', 'MM(v^2 * x^2)', 'MM(v^2 * y^2)', 'MM(v^3 * x)', 'MM(v^3 * y)', 'fit(v,x)', 'fit(v,y)', 'fit_error(v,x)', 'fit_error(v,y)', 'fit_noise_entropy(v,x)', 'fit_noise_entropy(v,y)', 'fit_noise_skewness(v,x)', 'fit_noise_skewness(v,y)', 'fit_noise_kurtosis(v,x)', 'fit_noise_kurtosis(v,y)', 'cond_dist_sim(v,x)', 'cond_dist_sim(v,y)', 'MI(v,X)^2', 'MI(v,Y)^2', 'MI(X,Y)^2', 'max(MI(v, others))^2', 'min(MI(v, others))^2']
+2024-10-19 06:50:00,849 - INFO -      ->X_group_test已保存
+2024-10-19 06:50:00,850 - INFO - ##### Loading Models...
+2024-10-19 06:50:02,580 - INFO - ##### Data Preprocessing...
+2024-10-19 06:50:02,587 - INFO -      1.删除多余列后样本量: (11486, 306)
+2024-10-19 06:50:02,725 - INFO -      2.填充缺失值后样本量: (11486, 306)
+2024-10-19 06:50:02,728 - INFO -      3.清理特征名称后样本量: (11486, 306)
+2024-10-19 06:50:02,728 - INFO - ##### Extracting X_test
+2024-10-19 06:50:02,856 - INFO -      ->->->处理类别特征: dimension，唯一值数量: 8
+2024-10-19 06:50:02,864 - INFO -      ->->->处理类别特征: ExactSearch_v_X，唯一值数量: 2
+2024-10-19 06:50:02,869 - INFO -      ->->->处理类别特征: ExactSearch_X_v，唯一值数量: 2
+2024-10-19 06:50:02,875 - INFO -      ->->->处理类别特征: ExactSearch_v_Y，唯一值数量: 2
+2024-10-19 06:50:02,881 - INFO -      ->->->处理类别特征: ExactSearch_Y_v，唯一值数量: 2
+2024-10-19 06:50:02,887 - INFO -      ->->->处理类别特征: ExactSearch_X_Y，唯一值数量: 2
+2024-10-19 06:50:02,893 - INFO -      ->->->处理类别特征: PC_v_X，唯一值数量: 2
+2024-10-19 06:50:02,899 - INFO -      ->->->处理类别特征: PC_X_v，唯一值数量: 2
+2024-10-19 06:50:02,905 - INFO -      ->->->处理类别特征: PC_v_Y，唯一值数量: 2
+2024-10-19 06:50:02,911 - INFO -      ->->->处理类别特征: PC_Y_v，唯一值数量: 2
+2024-10-19 06:50:02,916 - INFO -      ->->->处理类别特征: PC_X_Y，唯一值数量: 2
+2024-10-19 06:50:02,922 - INFO -      ->->->处理类别特征: FCI_v_X，唯一值数量: 4
+2024-10-19 06:50:02,927 - INFO -      ->->->处理类别特征: FCI_X_v，唯一值数量: 4
+2024-10-19 06:50:02,933 - INFO -      ->->->处理类别特征: FCI_v_Y，唯一值数量: 4
+2024-10-19 06:50:02,940 - INFO -      ->->->处理类别特征: FCI_Y_v，唯一值数量: 4
+2024-10-19 06:50:02,946 - INFO -      ->->->处理类别特征: FCI_X_Y，唯一值数量: 4
+2024-10-19 06:50:02,953 - INFO -      ->->->处理类别特征: GRaSP_v_X，唯一值数量: 3
+2024-10-19 06:50:02,959 - INFO -      ->->->处理类别特征: GRaSP_X_v，唯一值数量: 3
+2024-10-19 06:50:02,965 - INFO -      ->->->处理类别特征: GRaSP_v_Y，唯一值数量: 3
+2024-10-19 06:50:02,972 - INFO -      ->->->处理类别特征: GRaSP_Y_v，唯一值数量: 3
+2024-10-19 06:50:02,978 - INFO -      ->->->处理类别特征: GRaSP_X_Y，唯一值数量: 3
+2024-10-19 06:50:02,984 - INFO -      ->类别特征索引 (cat_idxs): [0, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105]
+2024-10-19 06:50:02,985 - INFO -      ->类别特征模态数 (cat_dims): [8, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 4, 4, 4, 4, 4, 3, 3, 3, 3, 3]
+2024-10-19 06:50:02,986 - INFO -      4.处理类别特征后样本量: (11486, 304)
+2024-10-19 06:50:02,989 - INFO - 测试数据类型为 DataFrame
+2024-10-19 06:50:03,003 - INFO - 测试数据类型为 DataFrame
+2024-10-19 06:50:03,020 - INFO -      5.对齐特征后样本量: (11486, 304)
+2024-10-19 06:50:03,022 - INFO - ##### Predicting on X_test
+2024-10-19 06:50:11,895 - INFO - 预测完成
+2024-10-19 06:50:12,046 - INFO - submission文件已保存
