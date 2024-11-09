@@ -11,6 +11,8 @@ The model experiment is implemented in `try_xxx.ipynb` etc, which included a mod
 
 some failed experiment functions are in `junk_utils.py`
 
+**The following Readme is some expirement notes for feature engineering, you might don't need to read it.**
+
 ## 特征工程
 ### Baseline
 #### pearson_correlation
